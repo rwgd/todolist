@@ -1,0 +1,84 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context=".SingleTaskActivity" >
+
+    <TextView
+        android:id="@+id/textViewSingleTaskTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:text="Title:" />
+
+    <EditText
+        android:id="@+id/editTextSingleTaskTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/textViewSingleTaskTitle"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/textViewSingleTaskTitle"
+        android:ems="10" >
+
+        <requestFocus />
+    </EditText>
+
+    <TextView
+        android:id="@+id/textViewSingleTaskDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/editTextSingleTaskTitle"
+        android:layout_below="@+id/editTextSingleTaskTitle"
+        android:layout_marginTop="19dp"
+        android:text="Date:" />
+
+    <EditText
+        android:id="@+id/editTextSingleTaskDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/textViewSingleTaskDate"
+        android:layout_alignRight="@+id/editTextSingleTaskTitle"
+        android:layout_below="@+id/textViewSingleTaskDate"
+        android:ems="10" />
+
+    <TextView
+        android:id="@+id/textViewSingleTaskDes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/editTextSingleTaskDate"
+        android:layout_below="@+id/editTextSingleTaskDate"
+        android:layout_marginTop="20dp"
+        android:text="Description:" />
+
+    <EditText
+        android:id="@+id/editTextSingleTaskDes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/textViewSingleTaskDes"
+        android:layout_alignRight="@+id/editTextSingleTaskDate"
+        android:layout_below="@+id/textViewSingleTaskDes"
+        android:ems="10" />
+
+    <Button
+        android:id="@+id/buttonSingleTaskSaveN"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:text="Save" />
+
+    <Button
+        android:id="@+id/buttonSingleTaskDone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/editTextSingleTaskDes"
+        android:layout_below="@+id/editTextSingleTaskDes"
+        android:layout_marginTop="21dp"
+        android:text="Undone" />
+
+</RelativeLayout>
