@@ -48,7 +48,7 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 		
 		mPreferences = getSharedPreferences("CurrentUser", MODE_PRIVATE);
 		
-		//Wenn User bereits eingeloggt, Activity ueberspringen
+		//Wenn User bereits eingeloggt, Activity ueberspringen r
 		if(mPreferences.getString("AuthToken", "") != null && mPreferences.getString("UserMail", "") != null){
 			if(!mPreferences.getString("AuthToken", "").equals("")){
 				Intent intent = new Intent(getApplicationContext(), TaskActivity.class);
