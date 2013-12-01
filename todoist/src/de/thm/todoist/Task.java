@@ -4,12 +4,12 @@ import java.io.Serializable;
 
 public class Task implements Serializable {
 	
-	public String title, description, enddate;
-	public boolean done;
-	public int priority;
-	public int id;
+	private String title, description, enddate;
+	private boolean done;
+	private int priority;
+	private String id;
 
-	public Task(int id, String title, String description, String enddate, boolean done, int priority) {
+	public Task(String id, String title, String description, String enddate, boolean done, int priority) {
 		super();
 		this.id = id;
 		this.title = title;
@@ -70,12 +70,12 @@ public class Task implements Serializable {
 	}
 
 	
-	public int getId() {
+	public String getId() {
 		return id;
 	}
 
 
-	public void setId(int id) {
+	public void setId(String id) {
 		this.id = id;
 	}
 
