@@ -1,7 +1,9 @@
 package de.thm.todoist;
 
 import java.io.IOException;
+import java.util.HashMap;
 
+import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpPost;
@@ -10,6 +12,15 @@ import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+
+
 
 import android.os.Bundle;
 import android.app.Activity;
@@ -30,6 +41,8 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 	public EditText etName, etPassword;
 	public Button btnLogin, btnRegister;
 	public SharedPreferences mPreferences;
+	public Context context;
+	public RequestQueue queue;
 
 
 	@Override
@@ -37,6 +50,8 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 		super.onCreate(savedInstanceState);
 		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.activity_login);
+		context = this;
+		queue = Volley.newRequestQueue(this);
 		
 		etName = (EditText) findViewById(R.id.editTextLoginName);
 		etPassword = (EditText) findViewById(R.id.editTextLoginPassword);
@@ -64,6 +79,7 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 		
 		//Login Button
 		if (v.getId() == R.id.buttonLogin) {
+			datadroidTest("rbn991@gmail.com", "123456789");
 			
 			String name = etName.getText().toString();
 			String password = etPassword.getText().toString();
@@ -71,8 +87,10 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 			if(name.equals("") || password.equals("")){
 				Toast.makeText(this, "Please complete all the fields",Toast.LENGTH_LONG).show();
 			} else {
-				LoginTask lTask = new LoginTask(this, name, password);
-				lTask.execute(LOGIN_API_ENDPOINT_URL);
+				//LoginTask lTask = new LoginTask(this, name, password);
+				//lTask.execute(LOGIN_API_ENDPOINT_URL);
+				
+				
 			}
 
 		}
@@ -85,6 +103,47 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 			Intent i = new Intent(this, RegisterActivity.class);
 			startActivity(i);
 		}
+		
+	}
+	
+	
+	//Abfrage mit Volley Library -> geht! AsyncTask kann dann raus.
+	public void datadroidTest(final String username, final String password){
+		JSONObject holder = new JSONObject();
+        JSONObject userObj = new JSONObject();
+        try {
+			userObj.put("email", username);
+	        userObj.put("password", password);
+	        holder.put("user", userObj);
+		} catch (JSONException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+        
+		JsonObjectRequest req = new JsonObjectRequest(LOGIN_API_ENDPOINT_URL, holder,
+			       new Response.Listener<JSONObject>() {
+			           @Override
+			           public void onResponse(JSONObject response) {
+			               try {
+			            	   
+			            	   //TODO noch fertig machen
+			            	   if (response.getBoolean("success")) {
+			            		   Toast.makeText(context, "token:" + response.getJSONObject("data").getString("auth_token"), Toast.LENGTH_LONG).show();
+			            	   }
+				                
+			               } catch (JSONException e) {
+			                   e.printStackTrace();
+			               }
+			           }
+			       }, new Response.ErrorListener() {
+			           @Override
+			           public void onErrorResponse(VolleyError error) {
+			               VolleyLog.e("Error: ", error.getMessage());
+			           }
+			       });
+		
+		queue.add(req);	
 	}
 	
 
