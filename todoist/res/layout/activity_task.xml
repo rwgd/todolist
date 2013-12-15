@@ -4,14 +4,7 @@
     android:layout_height="match_parent"
     tools:context=".TaskActivity" >
 
-    <TextView
-        android:id="@+id/textViewTaskInfo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:text="Tasks"
-        android:textAppearance="?android:attr/textAppearanceLarge" />
+
 
     <TextView
         android:id="@+id/textViewTaskLoggedIn"
@@ -40,37 +33,5 @@
 
     </ListView>
 
-    <Button
-        android:id="@+id/buttonTaskReload"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/listView1"
-        android:layout_alignParentBottom="true"
-        android:text="Reload" />
-
-    <Button
-        android:id="@+id/buttonTaskLogout"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/buttonTaskReload"
-        android:layout_alignBottom="@+id/buttonTaskReload"
-        android:layout_alignRight="@+id/listView1"
-        android:text="Logout" />
-
-    <Button
-        android:id="@+id/buttonTaskNew"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true"
-        android:text="+" />
-
-    <Button
-        android:id="@+id/buttonTaskImport"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:text="Import" />
-
+ 
 </RelativeLayout>

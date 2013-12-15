@@ -2,8 +2,11 @@ package de.thm.todoist;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.ResponseHandler;
@@ -16,10 +19,28 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.Request.Method;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.Response.ErrorListener;
+import com.android.volley.Response.Listener;
+import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -29,6 +50,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
@@ -39,56 +62,71 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class TaskActivity extends Activity implements OnClickListener,
-		Constants {
+public class TaskActivity extends Activity implements Constants {
 
-	public ListView lvTasks;
-	public Button bReload, bLogout, bNew, bImport;
-	public User actualUser;
-	public ArrayList<Task> actualTasks;
-	public ArrayList<HashMap<String, Object>> myList;
-	public Context ctxt;
-	public SharedPreferences mPreferences;
-	public TextView tvUserName;
+	private ListView lvTasks;
+	private User actualUser;
+	private ArrayList<Task> actualTasks;
+	private ArrayList<HashMap<String, Object>> myList;
+	private Context ctxt;
+	private SharedPreferences mPreferences;
+	private TextView tvUserName;
 	private static final int REQUEST_PICK_FILE = 1;
-	final int FILE_CHOOSER = 1;
+	private final int FILE_CHOOSER = 1;
+	private RequestQueue queue;
+	private TaskListModel model;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-
+		super.onCreate(savedInstanceState);	
 		setContentView(R.layout.activity_task);
-
 		ctxt = this;
+		model = TaskListModel.getInstance();
+		
+		ActionBar ab = getActionBar();
+	    ab.setTitle(":todoist");
+	    ab.setSubtitle("tasks"); 
+	    
 		mPreferences = getSharedPreferences("CurrentUser", MODE_PRIVATE);
-
+		queue = Volley.newRequestQueue(this);
+		
 		lvTasks = (ListView) findViewById(R.id.listView1);
-
-		bReload = (Button) findViewById(R.id.buttonTaskReload);
-		bReload.setOnClickListener(this);
-		bLogout = (Button) findViewById(R.id.buttonTaskLogout);
-		bLogout.setOnClickListener(this);
-		bNew = (Button) findViewById(R.id.buttonTaskNew);
-		bNew.setOnClickListener(this);
-		bImport = (Button) findViewById(R.id.buttonTaskImport);
-		bImport.setOnClickListener(this);
-
 		tvUserName = (TextView) findViewById(R.id.textViewTaskLoggedInValue);
 		tvUserName.setText(mPreferences.getString("UserMail", ""));
 
 		myList = new ArrayList<HashMap<String, Object>>();
 		actualTasks = new ArrayList<Task>();
 
-		populateTasks();
-
+		getTasks();
+	}
+	
+	 public void onResume(){
+	 super.onResume();
+	 if(model.getTaskList()!=null){
+		 actualTasks = model.getTaskList();
+		 if(actualTasks.size() > 0){
+			 showList();
+		 }  
+	 }
 	}
 
-	@Override
-	public void onClick(View v) {
-
-		if (v.getId() == R.id.buttonTaskImport) {
-
+	
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.activity_task_actions, menu);
+ 
+        return super.onCreateOptionsMenu(menu);
+    }
+    
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Take appropriate action for each action item click
+        switch (item.getItemId()) {
+        case R.id.action_backspace:
+        	logout();
+            return true;
+        case R.id.action_import_export:
 			Intent intent = new Intent(this, FilePickerActivity.class);
 			intent.putExtra(FilePickerActivity.EXTRA_SHOW_HIDDEN_FILES, true);
 
@@ -99,27 +137,22 @@ public class TaskActivity extends Activity implements OnClickListener,
 					extensions);
 
 			startActivityForResult(intent, REQUEST_PICK_FILE);
-
-		}
-
-		if (v.getId() == R.id.buttonTaskReload) {
-
-		}
-
-		if (v.getId() == R.id.buttonTaskNew) {
-			Task selectedTask = new Task("0", "", "", "", false, 0);
-			Intent intent = new Intent(ctxt, SingleTaskActivity.class);
-			intent.putExtra("task", selectedTask);
-			startActivity(intent);
-		}
-
-		if (v.getId() == R.id.buttonTaskLogout) {
-			LogoutTask logoutTask = new LogoutTask(this);
-			logoutTask.setMessageLoading("Loggin out...");
-			logoutTask.execute(LOGOUT_URL);
-		}
-
-	}
+            return true;
+        case R.id.action_refresh:
+        	getTasks();
+        	//sendTask();
+            return true;
+        case R.id.action_new:
+        	model.setTaskList(actualTasks);
+        	Task selectedTask = new Task("0", "", "", "", false, 0);
+			Intent intentS = new Intent(ctxt, SingleTaskActivity.class);
+			intentS.putExtra("task", selectedTask);
+			startActivity(intentS);
+            return true;
+        default:
+            return super.onOptionsItemSelected(item);
+        }
+    }
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -161,6 +194,7 @@ public class TaskActivity extends Activity implements OnClickListener,
 			}
 		}
 	}
+	
 
 	private void showList() {
 		myList.clear();
@@ -198,7 +232,7 @@ public class TaskActivity extends Activity implements OnClickListener,
 				lvTasks.setOnItemClickListener(new OnItemClickListener() {
 					public void onItemClick(AdapterView<?> parent, View view,
 							int position, long id) {
-
+						model.setTaskList(actualTasks);
 						Task selectedTask = actualTasks.get(position);
 
 						Intent intent = new Intent(ctxt,
@@ -213,35 +247,197 @@ public class TaskActivity extends Activity implements OnClickListener,
 
 	}
 
-	public void populateTasks() {
 
-		actualTasks.add(new Task("1", "Aufgabe1", "Beschreibung 1",
-				"12.12.1999", false, 0));
-		actualTasks.add(new Task("2", "Aufgabe2", "Beschreibung 2",
-				"12.12.1998", false, 0));
-		actualTasks.add(new Task("3", "Aufgabe3", "Beschreibung 3",
-				"12.12.1997", true, 0));
 
-		showList();
-	}
+	public void sendTask(){
+		JSONObject taskObj = new JSONObject();
+		JSONObject holder = new JSONObject();
 
-	private class GetUserTask extends AsyncTask<String, Void, User> {
+		try {
+			
+			taskObj.put("title", "blub");
+			holder.put("user_token", mPreferences.getString("AuthToken", ""));
+			holder.put("task", taskObj);
+			
 
-		@Override
-		protected User doInBackground(String... params) {
-			User usr = null;
-			return usr;
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		Log.d("holder", holder.toString());
+		
+		JsonObjectRequest req = new JsonObjectRequest(Method.POST, NEW_TASK_URL, holder, 
+			       new Response.Listener<JSONObject>() {
+			           @Override
+			           public void onResponse(JSONObject response) {
+			              
+			            	   
+			            	   Log.d("newtask", response.toString());
+				                
+			               
+			           }
+			       }, new Response.ErrorListener() {
+			           @Override
+			           public void onErrorResponse(VolleyError error) {
+			               VolleyLog.e("Error: ", error.getMessage());
+			           }
+			       }){     
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError { 
+                    Map<String, String>  params = new HashMap<String, String>();  
+                    params.put("Content-Type", "application/json");  
+                    params.put("Accept", "application/json");
 
-		@Override
-		protected void onPostExecute(User result) {
+                    return params;  
+            }
+        };
+		
+		queue.add(req);	
 
-			if (result != null) {
-
-			}
-		}
 	}
+	
+	public void getTasks(){
 
+        String URL = TASKS_URL + "/?user_token=" + mPreferences.getString("AuthToken", "");
+
+        StringRequest postRequest = new StringRequest(Request.Method.GET, URL, 
+            new Response.Listener<String>() 
+            {
+                @Override
+                public void onResponse(String response) {
+                    // response
+                    Log.d("Response", response);
+
+                    JsonArray jArray = new JsonParser().parse(response).getAsJsonArray();
+                    for (int i=0;i<jArray.size();i++) {
+                        JsonObject jsonObject = jArray.get(i).getAsJsonObject();
+                        Log.d("title", jsonObject.get("title").toString());
+                        Log.d("description", jsonObject.get("description").toString());
+                        Log.d("duedate", jsonObject.get("duedate").toString());
+                        Log.d("done", jsonObject.get("done").toString());
+                        Log.d("priority", jsonObject.get("priority").toString());
+                        
+                        String id = "000";
+                        String title = "";
+                        String description = "";
+                        String duedate = "";
+                        Boolean done = false;
+                        int priority = 0;
+                        
+                        //ID
+                        SecureRandom random = new SecureRandom();
+                        id = new BigInteger(130, random).toString(32);
+
+                        if(!jsonObject.get("title").isJsonNull()){
+                        	title = jsonObject.get("title").toString().replace("\"", "");
+                        }
+                        if(!jsonObject.get("description").isJsonNull()){
+                        	description = jsonObject.get("description").toString().replace("\"", "");
+                        }
+                        if(!jsonObject.get("duedate").isJsonNull()){
+                        	duedate =jsonObject.get("duedate").toString().replace("\"", "");
+                        }
+                        if(!jsonObject.get("done").isJsonNull()){
+                        	done = jsonObject.get("done").getAsBoolean();
+                        }
+                        if(jsonObject.get("priority").isJsonNull()){
+                        	try{
+                        		priority = jsonObject.get("priority").getAsInt(); 
+                        	} catch (NumberFormatException e){
+                        		//Error beim parsen
+                        		priority = 0;
+                        	}
+                        	
+                        }
+                        
+                        
+                        actualTasks.add(new Task(id, title,description, duedate, done, priority));
+                    }
+                    model.setTaskList(actualTasks);
+                    showList();
+                }
+            }, 
+            new Response.ErrorListener() 
+            {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    // TODO Auto-generated method stub
+                    Log.d("ERROR","error => "+error.toString());
+                }
+            }
+        ) {     
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError { 
+                    Map<String, String>  params = new HashMap<String, String>();  
+                    params.put("Content-Type", "application/json");  
+                    params.put("Accept", "application/json");
+
+                    return params;  
+            }
+        };
+
+		queue.add(postRequest);	
+
+	}
+	
+	
+	public void logout(){
+
+		JSONObject authObj = new JSONObject();
+		try {
+			authObj.put("user_token", mPreferences.getString("AuthToken", ""));
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		JsonObjectRequest req = new JsonObjectRequest(Method.POST, LOGOUT_URL, authObj, 
+			       new Response.Listener<JSONObject>() {
+			           @Override
+			           public void onResponse(JSONObject response) {
+			              
+			            	   
+			   			try {
+							if (response.getBoolean("success")) {
+								SharedPreferences.Editor editor = mPreferences.edit();
+								editor.remove("AuthToken");
+								editor.remove("UserMail");
+								editor.commit();
+
+								Intent intent = new Intent(TaskActivity.this,
+										LoginActivity.class);
+								startActivityForResult(intent, 0);
+							}
+							Toast.makeText(ctxt, response.getString("info"),
+									Toast.LENGTH_LONG).show();
+						} catch (Exception e) {
+							Toast.makeText(ctxt, e.getMessage(), Toast.LENGTH_LONG)
+									.show();
+				                
+			               
+			           }}
+			       }, new Response.ErrorListener() {
+			           @Override
+			           public void onErrorResponse(VolleyError error) {
+			               VolleyLog.e("Error: ", error.getMessage());
+			           }
+			       }){     
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError { 
+                    Map<String, String>  params = new HashMap<String, String>();  
+                    params.put("Content-Type", "application/json");  
+                    params.put("Accept", "application/json");
+
+                    return params;  
+            }
+        };
+		
+		queue.add(req);	
+		
+	}
+	
+	
+/*
 	private class LogoutTask extends UrlJsonAsyncTask {
 		public LogoutTask(Context context) {
 			super(context);
@@ -310,5 +506,5 @@ public class TaskActivity extends Activity implements OnClickListener,
 			}
 		}
 	}
-
+*/
 }

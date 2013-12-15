@@ -23,6 +23,7 @@ import com.android.volley.toolbox.Volley;
 
 
 import android.os.Bundle;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -38,19 +39,24 @@ import android.widget.Toast;
 
 public class LoginActivity extends Activity implements OnClickListener, Constants {
 	
-	public EditText etName, etPassword;
-	public Button btnLogin, btnRegister;
-	public SharedPreferences mPreferences;
-	public Context context;
-	public RequestQueue queue;
+	private EditText etName, etPassword;
+	private Button btnLogin, btnRegister;
+	private SharedPreferences mPreferences;
+	private Context context;
+	private RequestQueue queue;
 
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.activity_login);
 		context = this;
+		
+		ActionBar ab = getActionBar();
+	    ab.setTitle(":todoist");
+	    ab.setSubtitle("login"); 
+	    
+	    
 		queue = Volley.newRequestQueue(this);
 		
 		etName = (EditText) findViewById(R.id.editTextLoginName);
@@ -79,18 +85,18 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 		
 		//Login Button
 		if (v.getId() == R.id.buttonLogin) {
-			datadroidTest("rbn991@gmail.com", "123456789");
-			
+
 			String name = etName.getText().toString();
 			String password = etPassword.getText().toString();
+			
+			//zum testen hardcoded
+			login("rbn991@gmail.com", "123456789");
 			
 			if(name.equals("") || password.equals("")){
 				Toast.makeText(this, "Please complete all the fields",Toast.LENGTH_LONG).show();
 			} else {
 				//LoginTask lTask = new LoginTask(this, name, password);
 				//lTask.execute(LOGIN_API_ENDPOINT_URL);
-				
-				
 			}
 
 		}
@@ -108,7 +114,7 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 	
 	
 	//Abfrage mit Volley Library -> geht! AsyncTask kann dann raus.
-	public void datadroidTest(final String username, final String password){
+	public void login(final String username, final String password){
 		JSONObject holder = new JSONObject();
         JSONObject userObj = new JSONObject();
         try {
@@ -120,7 +126,6 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 			e1.printStackTrace();
 		}
 
-        
 		JsonObjectRequest req = new JsonObjectRequest(LOGIN_API_ENDPOINT_URL, holder,
 			       new Response.Listener<JSONObject>() {
 			           @Override
@@ -130,6 +135,17 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 			            	   //TODO noch fertig machen
 			            	   if (response.getBoolean("success")) {
 			            		   Toast.makeText(context, "token:" + response.getJSONObject("data").getString("auth_token"), Toast.LENGTH_LONG).show();
+			            		   SharedPreferences.Editor editor = mPreferences.edit();
+				   	                editor.putString("AuthToken", response.getJSONObject("data").getString("auth_token"));
+				   	                editor.putString("UserMail", username);
+				   	                editor.commit();
+				   	                //Toast.makeText(context, "token:" + json.getJSONObject("data").getString("auth_token"), Toast.LENGTH_LONG).show();
+				   	                
+				   	                Intent intent = new Intent(getApplicationContext(), TaskActivity.class);
+				   	                startActivity(intent);
+				   	                finish();
+			            	   } else {
+			            		   Toast.makeText(context, "error: couldn't login.", Toast.LENGTH_LONG).show();
 			            	   }
 				                
 			               } catch (JSONException e) {
@@ -147,7 +163,7 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 	}
 	
 
-	private class LoginTask extends UrlJsonAsyncTask {
+/*	private class LoginTask extends UrlJsonAsyncTask {
 		
 		public String userMail, userPassword;
 		
@@ -220,6 +236,6 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 	            super.onPostExecute(json);
 	        }
 	    }
-	}
+	}*/
 
 }

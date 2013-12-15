@@ -9,6 +9,7 @@ import java.util.List;
 
 import de.thm.todoist.R;
 
+import android.app.ActionBar;
 import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
@@ -54,7 +55,11 @@ public class FilePickerActivity extends ListActivity {
         @Override
         protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
-                this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+                
+                ActionBar ab = getActionBar();
+        	    ab.setTitle(":todoist");
+        	    ab.setSubtitle("pick a wunderlist file"); 
+        	    
                 // Set the view to be shown if the list is empty
                 LayoutInflater inflator = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
                 View emptyView = inflator.inflate(R.layout.file_picker_empty_view, null);

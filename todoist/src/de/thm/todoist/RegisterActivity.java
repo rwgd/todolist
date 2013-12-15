@@ -11,7 +11,15 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+
 import android.os.Bundle;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -27,15 +35,23 @@ import android.widget.Toast;
 
 public class RegisterActivity extends Activity implements OnClickListener, Constants {
 	
-	public EditText etName, etEmail, etPassword1, etPassword2;
-	public Button btnRegister, btnLogin;
-	public SharedPreferences mPreferences;
+	private EditText etName, etEmail, etPassword1, etPassword2;
+	private Button btnRegister, btnLogin;
+	private SharedPreferences mPreferences;
+	private Context context;
+	private RequestQueue queue;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.activity_register);
+		context = this;
+		
+		ActionBar ab = getActionBar();
+	    ab.setTitle(":todoist");
+	    ab.setSubtitle("register"); 
+	    
+		queue = Volley.newRequestQueue(this);
 		
 		etName = (EditText) findViewById(R.id.editTextRegisterName);
 		etEmail = (EditText) findViewById(R.id.editTextRegisterEmail);
@@ -73,6 +89,7 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
 						 RegisterTask registerTask = new RegisterTask(this, name, email, password1, password2);
 				         registerTask.setMessageLoading("Registering new account...");
 				         registerTask.execute(REGISTER_API_ENDPOINT_URL);
+				         //register(name, email, password1, password2);
 					}
   
 				} else {
@@ -88,6 +105,54 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
 			startActivity(i);
 		}
 		
+	}
+	
+	public void register(String userName, String userMail, String userPassword1, String userPassword2){
+		//Build the object
+		JSONObject holder = new JSONObject();
+        JSONObject userObj = new JSONObject();
+        try {
+			userObj.put("email", userMail);
+			userObj.put("username", userName);
+	        userObj.put("password", userPassword1);
+	        userObj.put("password_confirmation", userPassword2);
+	        holder.put("user", userObj);
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+        JsonObjectRequest req = new JsonObjectRequest(REGISTER_API_ENDPOINT_URL, holder,
+			       new Response.Listener<JSONObject>() {
+			           @Override
+			           public void onResponse(JSONObject response) {
+			               try {
+
+			            	   if (response.getBoolean("success")) {
+			            		SharedPreferences.Editor editor = mPreferences.edit();
+			   	                editor.putString("AuthToken", response.getJSONObject("data").getString("auth_token"));
+			   	                editor.commit();
+
+			   	                Intent intent = new Intent(getApplicationContext(), TaskActivity.class);
+			   	                startActivity(intent);
+			   	                finish();
+			            	   } else {
+			            		   Toast.makeText(context, "error: couldn't login.", Toast.LENGTH_LONG).show();
+			            	   }
+				                
+			               } catch (JSONException e) {
+			                   e.printStackTrace();
+			               }
+			           }
+			       }, new Response.ErrorListener() {
+			           @Override
+			           public void onErrorResponse(VolleyError error) {
+			               VolleyLog.e("Error: ", error.getMessage());
+			           }
+			       });
+		
+		queue.add(req);	
+
 	}
 
 	

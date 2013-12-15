@@ -1,6 +1,9 @@
 package de.thm.todoist;
 
+import java.util.ArrayList;
+
 import android.os.Bundle;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.view.Menu;
 import android.view.View;
@@ -11,20 +14,26 @@ import android.widget.EditText;
 
 public class SingleTaskActivity extends Activity implements OnClickListener   {
 	
-	public EditText etTitle, etDes, etDate;
-	public Button bDone, bSave;
+	private EditText etTitle, etDes, etDate;
+	private Button bDone;
+	private ArrayList<Task> allTasks;
+	private Task selTask;
+	private TaskListModel model;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-		
 		setContentView(R.layout.activity_single_task);
+		
+		model =  TaskListModel.getInstance();
+		allTasks = model.getTaskList();
+		
+		ActionBar ab = getActionBar();
+	    ab.setTitle(":todoist");
+	    ab.setSubtitle("edit/new task"); 
 		
 		bDone = (Button) findViewById(R.id.buttonSingleTaskDone);
 		bDone.setOnClickListener(this);
-		bSave = (Button) findViewById(R.id.buttonSingleTaskSaveN);
-		bSave.setOnClickListener(this);
 		
 		
 		etTitle = (EditText) findViewById(R.id.editTextSingleTaskTitle);
@@ -33,7 +42,7 @@ public class SingleTaskActivity extends Activity implements OnClickListener   {
 		
 		
 		Bundle extras = getIntent().getExtras();
-		Task selTask = (Task) extras.getSerializable("task");
+		selTask = (Task) extras.getSerializable("task");
 		
 		etTitle.setText(selTask.getTitle());
 		etDes.setText(selTask.getDescription());
@@ -45,6 +54,12 @@ public class SingleTaskActivity extends Activity implements OnClickListener   {
 			bDone.setText("Undone");
 		}
 		
+	}
+	
+	@Override
+	public void onBackPressed() {
+		saveTask();
+		finish();
 	}
 
 
@@ -58,10 +73,37 @@ public class SingleTaskActivity extends Activity implements OnClickListener   {
 				bDone.setText("Done");
 			}
 		}
+
 		
-		if (v.getId() == R.id.buttonSingleTaskSaveN) {
-			
+	}
+	
+	public void saveTask(){
+		String title = etTitle.getText().toString();
+		String description = etDes.getText().toString();
+		String date = etDate.getText().toString();
+		Boolean done = false;
+		if(bDone.getText().toString().equals("Done")){
+			done = true;
 		}
+		
+		selTask.setTitle(title);
+		selTask.setDescription(description);
+		selTask.setEnddate(date);
+		selTask.setDone(done);
+		
+		if(!selTask.getId().equals("0")){
+			//Vorhander Task wird bearbeitet
+			for(int i = 0; i < allTasks.size(); i++){
+				if(allTasks.get(i).getId().equals(selTask.getId())){
+					allTasks.set(i, selTask);
+				}
+			}
+		} else {
+			//neuer Task
+			allTasks.add(selTask);
+		}
+		
+		model.setTaskList(allTasks);
 		
 	}
 

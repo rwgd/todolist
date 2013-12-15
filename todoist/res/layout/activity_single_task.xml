@@ -64,13 +64,6 @@
         android:layout_below="@+id/textViewSingleTaskDes"
         android:ems="10" />
 
-    <Button
-        android:id="@+id/buttonSingleTaskSaveN"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:text="Save" />
 
     <Button
         android:id="@+id/buttonSingleTaskDone"
