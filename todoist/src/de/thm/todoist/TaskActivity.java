@@ -42,8 +42,10 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -54,6 +56,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnLongClickListener;
 import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
@@ -97,7 +100,9 @@ public class TaskActivity extends Activity implements Constants {
 		myList = new ArrayList<HashMap<String, Object>>();
 		actualTasks = new ArrayList<Task>();
 
-		getTasks();
+		PingCheck pc = new PingCheck();
+		pc.execute();
+		
 	}
 	
 	 public void onResume(){
@@ -107,6 +112,20 @@ public class TaskActivity extends Activity implements Constants {
 		 if(actualTasks.size() > 0){
 			 showList();
 		 }  
+	 }
+	}
+	 
+	 public void onPause(){
+	 super.onPause();
+	 if(model.getTaskList()!=null){
+		 actualTasks = model.getTaskList();
+		 Log.e("onpause", "drin");
+         try {
+			FktLib.saveTasks(actualTasks);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	 }
 	}
 
@@ -180,9 +199,11 @@ public class TaskActivity extends Activity implements Constants {
 								String id = explrObject.getString("id");
 								Boolean done = !explrObject
 										.isNull("completed_at");
-
-								actualTasks.add(new Task(id, title,
-										"Beschreibung 1", date, done, 0));
+								
+								addTaskToTasksArray(new Task(id, title,
+										"Beschreibung 1", date, done, 0), true);
+								
+								
 							}
 							showList();
 
@@ -240,61 +261,73 @@ public class TaskActivity extends Activity implements Constants {
 						intent.putExtra("task", selectedTask);
 						startActivity(intent);
 					}
+					
+					
+					
 				});
+				lvTasks.setLongClickable(true);
+				
+				//Bei langem Click loeschen
+				lvTasks.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+
+		            public boolean onItemLongClick(AdapterView<?> arg0, View arg1,
+		                    int pos, long id) {
+		                Log.v("long clicked","pos: " + pos);
+		                AlertDialog.Builder builder = new AlertDialog.Builder(ctxt);
+		                builder.setMessage("Do you really want to delete this Task?").setPositiveButton("Yes", dialogClickListener)
+		                    .setNegativeButton("No", dialogClickListener).show();
+
+		                return true;
+		            }
+		        }); 
 
 			}
 		}
 
 	}
+	
+	
+	DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+	    @Override
+	    public void onClick(DialogInterface dialog, int which) {
+	        switch (which){
+	        case DialogInterface.BUTTON_POSITIVE:
+	            //Yes button clicked
+	        	Log.v("delete: ","yes");
+	            break;
+
+	        case DialogInterface.BUTTON_NEGATIVE:
+	            //No button clicked
+	            break;
+	        }
+	    }
+	};
 
 
 
-	public void sendTask(){
-		JSONObject taskObj = new JSONObject();
-		JSONObject holder = new JSONObject();
 
-		try {
-			
-			taskObj.put("title", "blub");
-			holder.put("user_token", mPreferences.getString("AuthToken", ""));
-			holder.put("task", taskObj);
-			
-
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	
+	
+	public void addTaskToTasksArray(Task t, boolean sync){
+		
+		boolean isTaskInArray = false;
+		for(int i = 0; i < actualTasks.size(); i++){
+			if(actualTasks.get(i).getId().equals(t.getId()) ){
+				isTaskInArray = true;
+			}
 		}
-		Log.d("holder", holder.toString());
-		
-		JsonObjectRequest req = new JsonObjectRequest(Method.POST, NEW_TASK_URL, holder, 
-			       new Response.Listener<JSONObject>() {
-			           @Override
-			           public void onResponse(JSONObject response) {
-			              
-			            	   
-			            	   Log.d("newtask", response.toString());
-				                
-			               
-			           }
-			       }, new Response.ErrorListener() {
-			           @Override
-			           public void onErrorResponse(VolleyError error) {
-			               VolleyLog.e("Error: ", error.getMessage());
-			           }
-			       }){     
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError { 
-                    Map<String, String>  params = new HashMap<String, String>();  
-                    params.put("Content-Type", "application/json");  
-                    params.put("Accept", "application/json");
+		if(!isTaskInArray){
+			actualTasks.add(t);
+			if(sync){
+				//dierekt synchronisieren
+				FktLib.sendTask(t, mPreferences, queue);
+			}
+		} else {
+			//Task ist schon drin
 
-                    return params;  
-            }
-        };
-		
-		queue.add(req);	
-
+		}
 	}
+	
 	
 	public void getTasks(){
 
@@ -316,6 +349,7 @@ public class TaskActivity extends Activity implements Constants {
                         Log.d("duedate", jsonObject.get("duedate").toString());
                         Log.d("done", jsonObject.get("done").toString());
                         Log.d("priority", jsonObject.get("priority").toString());
+                        Log.d("id", jsonObject.get("id").toString());
                         
                         String id = "000";
                         String title = "";
@@ -324,10 +358,9 @@ public class TaskActivity extends Activity implements Constants {
                         Boolean done = false;
                         int priority = 0;
                         
-                        //ID
-                        SecureRandom random = new SecureRandom();
-                        id = new BigInteger(130, random).toString(32);
-
+                        if(!jsonObject.get("id").isJsonNull()){
+                        	id = jsonObject.get("id").toString().replace("\"", "");
+                        }
                         if(!jsonObject.get("title").isJsonNull()){
                         	title = jsonObject.get("title").toString().replace("\"", "");
                         }
@@ -338,7 +371,10 @@ public class TaskActivity extends Activity implements Constants {
                         	duedate =jsonObject.get("duedate").toString().replace("\"", "");
                         }
                         if(!jsonObject.get("done").isJsonNull()){
-                        	done = jsonObject.get("done").getAsBoolean();
+                        	String doneStr = jsonObject.get("done").toString().replace("\"", "");
+                        	if(doneStr.equals("1")){
+                        		done = true;
+                        	}
                         }
                         if(jsonObject.get("priority").isJsonNull()){
                         	try{
@@ -348,10 +384,10 @@ public class TaskActivity extends Activity implements Constants {
                         		priority = 0;
                         	}
                         	
-                        }
+                        } 
                         
-                        
-                        actualTasks.add(new Task(id, title,description, duedate, done, priority));
+                        addTaskToTasksArray(new Task(id, title,description, duedate, done, priority), false);
+                        //actualTasks.add(new Task(id, title,description, duedate, done, priority));
                     }
                     model.setTaskList(actualTasks);
                     showList();
@@ -434,6 +470,41 @@ public class TaskActivity extends Activity implements Constants {
 		
 		queue.add(req);	
 		
+	}
+	
+	private class PingCheck extends AsyncTask<Void, Void, Boolean> {
+
+	    @Override
+	    protected Boolean doInBackground(Void... params) {
+	        boolean check = false;
+	        
+	        check = FktLib.ping(CHECK_URL);
+	    	
+	        return check;
+	    }      
+
+	    @Override
+	    protected void onPostExecute(Boolean result) {  
+	    	
+	    	if(result){
+	    		//Verbindung besteht
+	    		getTasks();
+	    	} else {
+	    		Toast.makeText(ctxt, "Es besteht keine Verbindung zum Server!", Toast.LENGTH_LONG).show();
+	    		try {
+					actualTasks = FktLib.readTasks();
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					actualTasks = null;
+				}
+	    		if(actualTasks != null){
+	    			model.setTaskList(actualTasks);
+	    			showList();
+	    		}
+	    	}
+	       
+	    }
 	}
 	
 	

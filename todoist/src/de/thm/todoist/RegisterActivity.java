@@ -1,6 +1,8 @@
 package de.thm.todoist;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.ResponseHandler;
@@ -11,6 +13,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -86,10 +89,7 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
 					if(password1.length()< 8){
 						Toast.makeText(this, "Password must be min. 8 Characters long",Toast.LENGTH_LONG).show();
 					} else {
-						 RegisterTask registerTask = new RegisterTask(this, name, email, password1, password2);
-				         registerTask.setMessageLoading("Registering new account...");
-				         registerTask.execute(REGISTER_API_ENDPOINT_URL);
-				         //register(name, email, password1, password2);
+				         register(name, email, password1, password2);
 					}
   
 				} else {
@@ -107,7 +107,7 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
 		
 	}
 	
-	public void register(String userName, String userMail, String userPassword1, String userPassword2){
+	public void register(final String userName, String userMail, String userPassword1, String userPassword2){
 		//Build the object
 		JSONObject holder = new JSONObject();
         JSONObject userObj = new JSONObject();
@@ -131,6 +131,7 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
 			            	   if (response.getBoolean("success")) {
 			            		SharedPreferences.Editor editor = mPreferences.edit();
 			   	                editor.putString("AuthToken", response.getJSONObject("data").getString("auth_token"));
+			   	                editor.putString("UserMail", userName);
 			   	                editor.commit();
 
 			   	                Intent intent = new Intent(getApplicationContext(), TaskActivity.class);
@@ -149,14 +150,23 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
 			           public void onErrorResponse(VolleyError error) {
 			               VolleyLog.e("Error: ", error.getMessage());
 			           }
-			       });
+			       }){     
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError { 
+                    Map<String, String>  params = new HashMap<String, String>();  
+                    params.put("Content-Type", "application/json");  
+                    params.put("Accept", "application/json");
+
+                    return params;  
+            }
+        };
 		
 		queue.add(req);	
 
 	}
 
 	
-	private class RegisterTask extends UrlJsonAsyncTask {
+/*	private class RegisterTask extends UrlJsonAsyncTask {
 		
 		public String userName, userMail, userPassword1, userPassword2;
 		
@@ -231,6 +241,6 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
 	            super.onPostExecute(json);
 	        }
 	    }
-	}
+	}*/
 
 }
