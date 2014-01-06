@@ -78,6 +78,7 @@ public class TaskActivity extends Activity implements Constants {
 	private final int FILE_CHOOSER = 1;
 	private RequestQueue queue;
 	private TaskListModel model;
+	private int position;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -249,7 +250,7 @@ public class TaskActivity extends Activity implements Constants {
 								R.id.textViewTaskRowTillValue,
 								R.id.imageViewTaskRowDone });
 				lvTasks.setAdapter(aa);
-
+				
 				lvTasks.setOnItemClickListener(new OnItemClickListener() {
 					public void onItemClick(AdapterView<?> parent, View view,
 							int position, long id) {
@@ -273,13 +274,18 @@ public class TaskActivity extends Activity implements Constants {
 		            public boolean onItemLongClick(AdapterView<?> arg0, View arg1,
 		                    int pos, long id) {
 		                Log.v("long clicked","pos: " + pos);
+		                position = pos;
 		                AlertDialog.Builder builder = new AlertDialog.Builder(ctxt);
 		                builder.setMessage("Do you really want to delete this Task?").setPositiveButton("Yes", dialogClickListener)
 		                    .setNegativeButton("No", dialogClickListener).show();
+		                
 
 		                return true;
 		            }
 		        }); 
+				
+				aa.notifyDataSetChanged();
+				
 
 			}
 		}
@@ -294,6 +300,11 @@ public class TaskActivity extends Activity implements Constants {
 	        case DialogInterface.BUTTON_POSITIVE:
 	            //Yes button clicked
 	        	Log.v("delete: ","yes");
+                ServerLib.deleteTask(actualTasks.get(position).getId(), mPreferences, queue);
+                actualTasks.remove(position);
+                model.setTaskList(actualTasks);
+                showList();
+                lvTasks.invalidateViews();
 	            break;
 
 	        case DialogInterface.BUTTON_NEGATIVE:
@@ -320,7 +331,7 @@ public class TaskActivity extends Activity implements Constants {
 			actualTasks.add(t);
 			if(sync){
 				//dierekt synchronisieren
-				FktLib.sendTask(t, mPreferences, queue);
+				ServerLib.sendTask(t, mPreferences, queue);
 			}
 		} else {
 			//Task ist schon drin
@@ -328,6 +339,7 @@ public class TaskActivity extends Activity implements Constants {
 		}
 	}
 	
+
 	
 	public void getTasks(){
 
@@ -427,7 +439,7 @@ public class TaskActivity extends Activity implements Constants {
 			e.printStackTrace();
 		}
 		
-		JsonObjectRequest req = new JsonObjectRequest(Method.POST, LOGOUT_URL, authObj, 
+		JsonObjectRequest req = new JsonObjectRequest(Method.DELETE, LOGOUT_URL, authObj, 
 			       new Response.Listener<JSONObject>() {
 			           @Override
 			           public void onResponse(JSONObject response) {
@@ -463,6 +475,7 @@ public class TaskActivity extends Activity implements Constants {
                     Map<String, String>  params = new HashMap<String, String>();  
                     params.put("Content-Type", "application/json");  
                     params.put("Accept", "application/json");
+                    params.put("X-AUTH-TOKEN", mPreferences.getString("AuthToken", ""));
 
                     return params;  
             }

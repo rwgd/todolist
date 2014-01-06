@@ -90,13 +90,12 @@ public class LoginActivity extends Activity implements OnClickListener, Constant
 			String password = etPassword.getText().toString();
 			
 			//zum testen hardcoded
-			login("rbn991@gmail.com", "123456789");
+			//login("rbn99166@gmail.com", "123456789");
 			
 			if(name.equals("") || password.equals("")){
 				Toast.makeText(this, "Please complete all the fields",Toast.LENGTH_LONG).show();
 			} else {
-				//LoginTask lTask = new LoginTask(this, name, password);
-				//lTask.execute(LOGIN_API_ENDPOINT_URL);
+				login(name, password);
 			}
 
 		}

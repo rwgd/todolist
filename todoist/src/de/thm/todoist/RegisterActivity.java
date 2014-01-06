@@ -75,7 +75,7 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
 		
 		//Register Button
 		if (v.getId() == R.id.buttonRegister) {
-			
+
 			String name = etName.getText().toString();
 			String email = etEmail.getText().toString();
 			String password1 = etPassword1.getText().toString();
@@ -150,7 +150,7 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
 			           public void onErrorResponse(VolleyError error) {
 			               VolleyLog.e("Error: ", error.getMessage());
 			           }
-			       }){     
+			       })/*{     
             @Override
             public Map<String, String> getHeaders() throws AuthFailureError { 
                     Map<String, String>  params = new HashMap<String, String>();  
@@ -159,7 +159,7 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
 
                     return params;  
             }
-        };
+        }*/;
 		
 		queue.add(req);	
 

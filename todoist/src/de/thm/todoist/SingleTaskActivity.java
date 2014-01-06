@@ -1,5 +1,7 @@
 package de.thm.todoist;
 
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +21,7 @@ import com.android.volley.toolbox.Volley;
 import android.os.Bundle;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 import android.view.Menu;
@@ -27,6 +30,7 @@ import android.view.Window;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 public class SingleTaskActivity extends Activity implements OnClickListener, Constants    {
 	
@@ -38,11 +42,13 @@ public class SingleTaskActivity extends Activity implements OnClickListener, Con
 	private SharedPreferences mPreferences;
 	private RequestQueue queue;
 	private Boolean isNewTask;
+	private Context ctxt;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_single_task);
+		ctxt = this;
 		
 		model =  TaskListModel.getInstance();
 		allTasks = model.getTaskList();
@@ -83,9 +89,10 @@ public class SingleTaskActivity extends Activity implements OnClickListener, Con
 		
 		if(isNewTask){
 			//wenn neuer Task, dann auf den Server uebertragen
-			FktLib.sendTask(selTask, mPreferences, queue);
+			ServerLib.sendTask(selTask, mPreferences, queue);
 		} else {
 			//sonst editieren
+			ServerLib.editTask(selTask, mPreferences, queue);
 		}
 		
 		finish();
@@ -96,6 +103,9 @@ public class SingleTaskActivity extends Activity implements OnClickListener, Con
 	public void onClick(View v) {
 		
 		if (v.getId() == R.id.buttonSingleTaskDone) {
+			
+			Toast.makeText(ctxt, selTask.getId(), Toast.LENGTH_LONG).show();
+			
 			if(bDone.getText().equals("Done")){
 				bDone.setText("Undone");
 			} else {
@@ -130,6 +140,10 @@ public class SingleTaskActivity extends Activity implements OnClickListener, Con
 			}
 		} else {
 			//neuer Task
+			SecureRandom random = new SecureRandom();
+			String id = new BigInteger(130, random).toString(32);
+			selTask.setId(id);
+			
 			allTasks.add(selTask);
 			isNewTask = true;
 		}
