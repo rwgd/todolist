@@ -44,7 +44,8 @@
         android:layout_alignLeft="@+id/textViewSingleTaskDate"
         android:layout_alignRight="@+id/editTextSingleTaskTitle"
         android:layout_below="@+id/textViewSingleTaskDate"
-        android:ems="10" />
+        android:ems="10"
+        android:inputType="date" />
 
     <TextView
         android:id="@+id/textViewSingleTaskDes"
@@ -73,5 +74,7 @@
         android:layout_below="@+id/editTextSingleTaskDes"
         android:layout_marginTop="21dp"
         android:text="Undone" />
+
+
 
 </RelativeLayout>

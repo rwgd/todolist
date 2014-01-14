@@ -5,6 +5,11 @@
           android:icon="@drawable/ic_action_backspace"
           android:title="Logout"
           android:showAsAction="never"/>
+    
+        <item android:id="@+id/action_exportxml"
+          android:icon="@drawable/ic_action_backspace"
+          android:title="Export XML"
+          android:showAsAction="never"/>
      
     <!-- Import -->
     <item android:id="@+id/action_import_export"

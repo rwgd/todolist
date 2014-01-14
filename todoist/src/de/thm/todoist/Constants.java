@@ -11,5 +11,6 @@ public interface Constants {
 	static final String NEW_TASK_URL = "http://kadrei.caelum.uberspace.de/api/tasks.json";
 	static final String CHECK_URL = "http://kadrei.caelum.uberspace.de/";
 	static final String SAVE_DIR = Environment.getExternalStorageDirectory().toString() +  "/tasksList.xml";
+	static final String SAVE_DIR_XML = Environment.getExternalStorageDirectory().toString() +  "/exportXML.xml";
 
 }

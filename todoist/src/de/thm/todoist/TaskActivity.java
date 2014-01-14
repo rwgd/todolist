@@ -167,7 +167,17 @@ public class TaskActivity extends Activity implements Constants {
         	Task selectedTask = new Task("0", "", "", "", false, 0);
 			Intent intentS = new Intent(ctxt, SingleTaskActivity.class);
 			intentS.putExtra("task", selectedTask);
+			intentS.putExtra("newtask", true);
 			startActivity(intentS);
+            return true;
+        case R.id.action_exportxml:
+        	XMLBuilder xmlb = new XMLBuilder(actualTasks, this);
+        	try {
+				xmlb.generateXML();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             return true;
         default:
             return super.onOptionsItemSelected(item);
@@ -257,9 +267,12 @@ public class TaskActivity extends Activity implements Constants {
 						model.setTaskList(actualTasks);
 						Task selectedTask = actualTasks.get(position);
 
+						Toast.makeText(ctxt, "selected task-id:" + selectedTask.getId(), Toast.LENGTH_LONG).show();
+						
 						Intent intent = new Intent(ctxt,
 								SingleTaskActivity.class);
 						intent.putExtra("task", selectedTask);
+						intent.putExtra("newtask", false);
 						startActivity(intent);
 					}
 					

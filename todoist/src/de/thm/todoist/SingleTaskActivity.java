@@ -2,8 +2,11 @@ package de.thm.todoist;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.json.JSONException;
@@ -21,6 +24,7 @@ import com.android.volley.toolbox.Volley;
 import android.os.Bundle;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
@@ -29,6 +33,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -43,6 +48,9 @@ public class SingleTaskActivity extends Activity implements OnClickListener, Con
 	private RequestQueue queue;
 	private Boolean isNewTask;
 	private Context ctxt;
+	private boolean newtask;
+	private Calendar myCalendar;
+	private DatePickerDialog.OnDateSetListener date;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +61,7 @@ public class SingleTaskActivity extends Activity implements OnClickListener, Con
 		model =  TaskListModel.getInstance();
 		allTasks = model.getTaskList();
 		isNewTask = false;
+		myCalendar = Calendar.getInstance();
 		
 		ActionBar ab = getActionBar();
 	    ab.setTitle(":todoist");
@@ -69,11 +78,44 @@ public class SingleTaskActivity extends Activity implements OnClickListener, Con
 		mPreferences = getSharedPreferences("CurrentUser", MODE_PRIVATE);
 		Bundle extras = getIntent().getExtras();
 		selTask = (Task) extras.getSerializable("task");
+		
+		newtask = extras.getBoolean("newtask");
+		Log.e("newtask", String.valueOf(newtask));
 		queue = Volley.newRequestQueue(this);
 		
 		etTitle.setText(selTask.getTitle());
 		etDes.setText(selTask.getDescription());
 		etDate.setText(selTask.getEnddate());
+		
+		etDate.setFocusable(false);
+		etDate.setClickable(true);
+		date = new DatePickerDialog.OnDateSetListener() {
+
+		    @Override
+		    public void onDateSet(DatePicker view, int year, int monthOfYear,
+		            int dayOfMonth) {
+		        // TODO Auto-generated method stub
+		        myCalendar.set(Calendar.YEAR, year);
+		        myCalendar.set(Calendar.MONTH, monthOfYear);
+		        myCalendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+		        updateLabel();
+		    }
+
+		};
+		
+		etDate.setOnClickListener(new OnClickListener() {
+
+	        @Override
+	        public void onClick(View v) {
+	            // TODO Auto-generated method stub
+	            new DatePickerDialog(SingleTaskActivity.this, date, myCalendar
+	                    .get(Calendar.YEAR), myCalendar.get(Calendar.MONTH),
+	                    myCalendar.get(Calendar.DAY_OF_MONTH)).show();
+	        }
+	    });
+
+		
+
 		
 		if(selTask.isDone()){
 			bDone.setText("Done");
@@ -85,16 +127,17 @@ public class SingleTaskActivity extends Activity implements OnClickListener, Con
 	
 	@Override
 	public void onBackPressed() {
-		saveTask();
-		
-		if(isNewTask){
-			//wenn neuer Task, dann auf den Server uebertragen
-			ServerLib.sendTask(selTask, mPreferences, queue);
+		prepareTask();
+		Task t = null;
+		if(newtask){
+			t = ServerLib.sendTask(selTask, mPreferences, queue);
+			Log.e("idsingletask", t.getId());
+			
 		} else {
-			//sonst editieren
 			ServerLib.editTask(selTask, mPreferences, queue);
 		}
 		
+		saveTask(t);
 		finish();
 	}
 
@@ -116,7 +159,15 @@ public class SingleTaskActivity extends Activity implements OnClickListener, Con
 		
 	}
 	
-	public void saveTask(){
+	private void updateLabel() {
+
+	    String myFormat = "yyyy-MM-dd"; 
+	    SimpleDateFormat sdf = new SimpleDateFormat(myFormat, Locale.US);
+
+	    etDate.setText(sdf.format(myCalendar.getTime()));
+	    }
+	
+	public void prepareTask(){
 		String title = etTitle.getText().toString();
 		String description = etDes.getText().toString();
 		String date = etDate.getText().toString();
@@ -130,24 +181,21 @@ public class SingleTaskActivity extends Activity implements OnClickListener, Con
 		selTask.setEnddate(date);
 		selTask.setDone(done);
 		selTask.setPriority(2);
-		
-		if(!selTask.getId().equals("0")){
-			//Vorhander Task wird bearbeitet
+	}
+	
+	public void saveTask(Task task){
+
+		if(newtask){
+			selTask.setId(task.getId());
+			allTasks.add(selTask);
+		} else {
 			for(int i = 0; i < allTasks.size(); i++){
 				if(allTasks.get(i).getId().equals(selTask.getId())){
 					allTasks.set(i, selTask);
 				}
 			}
-		} else {
-			//neuer Task
-			SecureRandom random = new SecureRandom();
-			String id = new BigInteger(130, random).toString(32);
-			selTask.setId(id);
-			
-			allTasks.add(selTask);
-			isNewTask = true;
 		}
-		
+
 		model.setTaskList(allTasks);
 		
 	}

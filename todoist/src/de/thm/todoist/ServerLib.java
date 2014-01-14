@@ -21,7 +21,7 @@ import com.android.volley.toolbox.StringRequest;
 
 public class ServerLib implements Constants{
 	
-	public static void editTask(Task task, SharedPreferences mPreferences, RequestQueue queue){
+	public static void editTask(Task task, final SharedPreferences mPreferences, RequestQueue queue){
 		JSONObject taskObj = new JSONObject();
 		JSONObject holder = new JSONObject();
 		String URL = TASKS_URL + "/" + task.getId() + "/edit";
@@ -67,6 +67,7 @@ public class ServerLib implements Constants{
                     Map<String, String>  params = new HashMap<String, String>();  
                     params.put("Content-Type", "application/json");  
                     params.put("Accept", "application/json");
+                    params.put("X-AUTH-TOKEN", mPreferences.getString("AuthToken", ""));
 
                     return params;  
             }
@@ -76,23 +77,17 @@ public class ServerLib implements Constants{
 	}
 	
 	
-	public static void sendTask(Task task, SharedPreferences mPreferences, RequestQueue queue){
+	public static Task sendTask(final Task task, final SharedPreferences mPreferences, RequestQueue queue){
 		JSONObject taskObj = new JSONObject();
 		JSONObject holder = new JSONObject();
 
 		try {
-			if(task.getId() != null){
-				taskObj.put("id", task.getId());
-			}
-			
-			
 			taskObj.put("title", task.getTitle());
 			taskObj.put("description", task.getDescription());
 			taskObj.put("duedate", task.getEnddate());
 			taskObj.put("done", task.isDone());
 			taskObj.put("priority", task.getPriority());
-
-			holder.put("user_token", mPreferences.getString("AuthToken", ""));
+			//holder.put("user_token", mPreferences.getString("AuthToken", ""));
 			holder.put("task", taskObj);
 
 		} catch (JSONException e) {
@@ -108,7 +103,14 @@ public class ServerLib implements Constants{
 			              
 			            	   
 			            	   Log.d("newtask", response.toString());
-				                
+			            	   try {
+			            		String generatedId = response.getJSONObject("data").getJSONObject("task").getString("id");
+								Log.d("id", response.getJSONObject("data").getJSONObject("task").getString("id"));
+								task.setId(generatedId);
+							} catch (JSONException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 			               
 			           }
 			       }, new Response.ErrorListener() {
@@ -122,12 +124,14 @@ public class ServerLib implements Constants{
                     Map<String, String>  params = new HashMap<String, String>();  
                     params.put("Content-Type", "application/json");  
                     params.put("Accept", "application/json");
+                    params.put("X-AUTH-TOKEN", mPreferences.getString("AuthToken", ""));
 
                     return params;  
             }
         };
 		
 		queue.add(req);	
+		return task;
 
 	}
 	
