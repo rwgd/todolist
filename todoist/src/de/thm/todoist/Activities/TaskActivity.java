@@ -10,12 +10,12 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
+import android.view.*;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
 import com.android.volley.*;
@@ -102,10 +102,13 @@ public class TaskActivity extends FragmentActivity
     }
 
 
+    private MenuItem mRefresh = null;
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.activity_task_actions, menu);
+        mRefresh = menu.findItem(R.id.action_refresh);
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -277,11 +280,18 @@ public class TaskActivity extends FragmentActivity
         }
     }
 
+    private LayoutInflater mInflater;
 
     public void getTasks() {
-
+        mInflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         String URL = TASKS_URL + "/?user_token=" + mPreferences.getString("AuthToken", "");
+        ImageView iv = (ImageView) mInflater.inflate(R.layout.refresh, null);
 
+        Animation rotation = AnimationUtils.loadAnimation(this, R.anim.rotate);
+        rotation.setRepeatCount(Animation.INFINITE);
+        iv.startAnimation(rotation);
+
+        mRefresh.setActionView(iv);
         StringRequest postRequest = new StringRequest(Request.Method.GET, URL,
                 new Response.Listener<String>() {
                     @Override
@@ -336,9 +346,12 @@ public class TaskActivity extends FragmentActivity
 
                             addTaskToTasksArray(new Task(id, title, description, duedate, done, priority), false);
                             //actualTasks.add(new Task(id, title,description, duedate, done, priority));
+                            mRefresh.getActionView().clearAnimation();
+                            mRefresh.setActionView(null);
                         }
                         model.setTaskList(actualTasks);
                         showList();
+
                     }
                 },
                 new Response.ErrorListener() {
