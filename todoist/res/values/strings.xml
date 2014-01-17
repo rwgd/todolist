@@ -8,5 +8,13 @@
     <string name="title_activity_task">TaskActivity</string>
     <string name="title_activity_single_task">SingleTaskActivity</string>
     <string name="title_activity_new_task">NewTaskActivity</string>
-
+    <string name="taskname">Taskname</string>
+    <string name="description">Taskbeschreibung</string>
+    <string name="activate_enddate">Enddatum aktivieren</string>
+    <string name="enddate">Enddatum:</string>
+    <string name="save">Speichern</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="createTask">Task erstellen</string>
+    <string name="editTask">Task bearbeiten</string>
+    <string name="deleteTask">Löschen</string>
 </resources>

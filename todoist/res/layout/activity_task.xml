@@ -1,37 +1,18 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".TaskActivity" >
+                xmlns:tools="http://schemas.android.com/tools"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                tools:context=".TaskActivity">
 
-
-
-    <TextView
-        android:id="@+id/textViewTaskLoggedIn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_below="@+id/textViewTaskInfo"
-        android:text="Logged in as:" />
-
-    <TextView
-        android:id="@+id/textViewTaskLoggedInValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/textViewTaskLoggedIn"
-        android:layout_alignBottom="@+id/textViewTaskLoggedIn"
-        android:layout_toRightOf="@+id/textViewTaskLoggedIn"
-        android:text="Max Muster" />
 
     <ListView
-        android:id="@+id/listView1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/buttonTaskReload"
-        android:layout_alignLeft="@+id/textViewTaskLoggedIn"
-        android:layout_below="@+id/textViewTaskLoggedIn" >
+            android:id="@+id/listView1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/buttonTaskReload"
+            android:layout_below="@+id/textViewTaskInfo">
 
     </ListView>
 
- 
+
 </RelativeLayout>

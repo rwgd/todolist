@@ -4,40 +4,43 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:paddingBottom="10dp"
-    android:paddingTop="10dp" >
+    android:paddingTop="10dp" android:padding="10dp">
 
     <TextView
-        android:id="@+id/textViewTaskRowTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
+            android:id="@+id/tvtaskName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:text="Titel"
+        android:text="@string/taskname"
         android:textAppearance="?android:attr/textAppearanceLarge" />
 
     <TextView
-        android:id="@+id/textViewTaskRowTill"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_below="@+id/textViewTaskRowTitle"
-        android:text="Date:" />
+            android:id="@+id/tvEnddateText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_below="@+id/tvtaskName"
+            android:text="@string/enddate"/>
 
     <TextView
-        android:id="@+id/textViewTaskRowTillValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/textViewTaskRowTill"
-        android:layout_alignBottom="@+id/textViewTaskRowTill"
-        android:layout_toRightOf="@+id/textViewTaskRowTill"
-        android:text="1.1.2000" />
+            android:id="@+id/tvEnddate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@+id/tvEnddateText"
+            android:layout_alignBottom="@+id/tvEnddateText"
+            android:layout_toRightOf="@+id/tvEnddateText"
+            android:text="1.1.2000" android:layout_marginLeft="10dp"/>
 
-    <ImageView
-        android:id="@+id/imageViewTaskRowDone"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:layout_alignParentRight="true"
-        android:layout_alignTop="@+id/textViewTaskRowTitle"
-        android:src="@drawable/red" />
+    <CheckBox
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_alignTop="@+id/tvtaskName"
+            android:id="@+id/checkBox"
+            android:layout_alignParentTop="true" android:layout_alignParentEnd="false"
+            android:layout_alignParentStart="false" android:gravity="center_vertical|center_horizontal"
+            android:layout_centerVertical="true" android:checked="false" android:focusableInTouchMode="false"
+            android:focusable="false"/>
 
 </RelativeLayout>
