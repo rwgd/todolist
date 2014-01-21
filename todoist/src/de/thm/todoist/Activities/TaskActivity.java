@@ -11,10 +11,7 @@ import android.util.Log;
 import android.view.*;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.AdapterView;
-import android.widget.ImageView;
-import android.widget.ListView;
-import android.widget.Toast;
+import android.widget.*;
 import com.android.volley.*;
 import com.android.volley.Request.Method;
 import com.android.volley.toolbox.JsonObjectRequest;
@@ -30,7 +27,6 @@ import de.thm.todoist.Helper.FktLib;
 import de.thm.todoist.Helper.ServerLib;
 import de.thm.todoist.Helper.XMLBuilder;
 import de.thm.todoist.Model.Task;
-import de.thm.todoist.Model.TaskListModel;
 import de.thm.todoist.R;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -43,23 +39,20 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class TaskActivity extends FragmentActivity
-        implements Constants, TaskDialog.NoticeDialogListener, AdapterView.OnItemClickListener {
+        implements Constants, TaskDialog.NoticeDialogListener, AdapterView.OnItemClickListener, CompoundButton.OnCheckedChangeListener {
 
     private ListView lvTasks;
-    private ArrayList<Task> actualTasks;
     private TaskListAdapter tasksAdapter;
     private Context ctxt;
     private SharedPreferences mPreferences;
     private static final int REQUEST_PICK_FILE = 1;
     private RequestQueue queue;
-    private TaskListModel model;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_task);
         ctxt = this;
-        model = TaskListModel.getInstance();
 
         ActionBar ab = getActionBar();
         if (ab != null) {
@@ -72,8 +65,7 @@ public class TaskActivity extends FragmentActivity
 
         lvTasks = (ListView) findViewById(R.id.listView1);
 
-        actualTasks = new ArrayList<Task>();
-        tasksAdapter = new TaskListAdapter(actualTasks, ctxt);
+        tasksAdapter = new TaskListAdapter(new ArrayList<Task>(), ctxt, this);
         lvTasks.setAdapter(tasksAdapter);
         lvTasks.setOnItemClickListener(this);
         PingCheck pc = new PingCheck();
@@ -83,20 +75,13 @@ public class TaskActivity extends FragmentActivity
 
     public void onResume() {
         super.onResume();
-        if (model.getTaskList() != null) {
-            actualTasks = model.getTaskList();
-            if (actualTasks.size() > 0) {
-                showList();
-            }
-        }
     }
 
     public void onPause() {
         super.onPause();
-        if (model.getTaskList() != null) {
-            actualTasks = model.getTaskList();
+        if (tasksAdapter.getCount() > 0) {
             try {
-                FktLib.saveTasks(actualTasks);
+                FktLib.saveTasks(tasksAdapter.getData());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -140,7 +125,7 @@ public class TaskActivity extends FragmentActivity
                 dialog.show(getFragmentManager(), "test");
                 return true;
             case R.id.action_exportxml:
-                XMLBuilder xmlb = new XMLBuilder(actualTasks, this);
+                XMLBuilder xmlb = new XMLBuilder(tasksAdapter.getData(), this);
                 try {
                     xmlb.generateXML();
                 } catch (Exception e) {
@@ -183,7 +168,7 @@ public class TaskActivity extends FragmentActivity
 //                                         addTaskToTasksArray(new Task(id, title, "", null, done, 0, false), true);
                                     }
                                 }
-                                showList();
+                                refreshList();
                             } catch (Exception e) {
                                 // Fehler beim Auslesen der JSON-Datei
                             }
@@ -194,8 +179,7 @@ public class TaskActivity extends FragmentActivity
     }
 
 
-    private void showList() {
-//        tasksAdapter.setData(actualTasks);
+    private void refreshList() {
         tasksAdapter.notifyDataSetChanged();
     }
 
@@ -203,13 +187,12 @@ public class TaskActivity extends FragmentActivity
     public void addTaskToTasksArray(Task t, boolean sync) {
 
         boolean isTaskInArray = false;
-        for (Task actualTask : actualTasks) {
+        for (Task actualTask : tasksAdapter.getData()) {
             if (actualTask.getId().equals(t.getId())) {
                 isTaskInArray = true;
             }
         }
         if (!isTaskInArray) {
-            actualTasks.add(t);
             tasksAdapter.add(t);
             tasksAdapter.notifyDataSetChanged();
             if (sync) {
@@ -234,64 +217,73 @@ public class TaskActivity extends FragmentActivity
         mRefresh.setActionView(iv);
         StringRequest postRequest = new StringRequest(Request.Method.GET, URL, new Response.Listener<String>() {
             @Override
-                    public void onResponse(String response) {
-                        // response
-                        Log.d("Response", response);
-                        JsonArray jArray = new JsonParser().parse(response).getAsJsonArray();
-                        for (int i = 0; i < jArray.size(); i++) {
-                            JsonObject jsonObject = jArray.get(i).getAsJsonObject();
-                            String id = "";
-                            String title = "";
-                            String description = "";
-                            GregorianCalendar duedate = null;
-                            Boolean done = false;
-                            int priority = 0;
-                            if (!jsonObject.get("id").isJsonNull()) {
-                                id = jsonObject.get("id").toString().replace("\"", "");
-                            }
-                            if (!jsonObject.get("title").isJsonNull()) {
-                                title = jsonObject.get("title").toString().replace("\"", "");
-                            }
-                            if (!jsonObject.get("description").isJsonNull()) {
-                                description = jsonObject.get("description").toString().replace("\"", "");
-                            }
-                            if (!jsonObject.get("duedate").isJsonNull()) {
-                                TimeZone tz = TimeZone.getTimeZone("UTC");
-                                DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
-                                df.setTimeZone(tz);
-                                GregorianCalendar cal = new GregorianCalendar();
-                                try {
-                                    cal.setTime(df.parse(jsonObject.get("duedate").toString().replace("\"", "")));
-                                    duedate = cal;
-                                } catch (ParseException e) {
-                                }
+            public void onResponse(String response) {
+                // response
+                Log.d("Response", response);
+                JsonArray jArray = new JsonParser().parse(response).getAsJsonArray();
+                for (int i = 0; i < jArray.size(); i++) {
+                    JsonObject jsonObject = jArray.get(i).getAsJsonObject();
+                    String id = "";
+                    String title = "";
+                    String description = "";
+                    GregorianCalendar duedate = null;
+                    Boolean done = false;
+                    Boolean hasDueDate = true;
+                    int priority = 0;
+                    if (!jsonObject.get("id").isJsonNull()) {
+                        id = jsonObject.get("id").toString().replace("\"", "");
+                    }
+                    if (!jsonObject.get("title").isJsonNull()) {
+                        title = jsonObject.get("title").toString().replace("\"", "");
+                    }
+                    if (!jsonObject.get("description").isJsonNull()) {
+                        description = jsonObject.get("description").toString().replace("\"", "");
+                    }
+                    if (!jsonObject.get("duedate").isJsonNull()) {
+                        TimeZone tz = TimeZone.getTimeZone("Europe/Berlin");
+                        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+                        df.setTimeZone(tz);
+                        GregorianCalendar cal = new GregorianCalendar();
+                        try {
+                            cal.setTime(df.parse(jsonObject.get("duedate").toString().replace("\"", "").substring(0, 19)));
+                            duedate = cal;
 
-                            }
-                            if (!jsonObject.get("done").isJsonNull()) {
-                                String doneStr = jsonObject.get("done").toString().replace("\"", "");
-                                if (doneStr.equals("1")) {
-                                    done = true;
-                                }
-                            }
-                            if (jsonObject.get("priority").isJsonNull()) {
-                                try {
-                                    priority = jsonObject.get("priority").getAsInt();
-                                } catch (NumberFormatException e) {
-                                    priority = 0;
-                                }
-
-                            }
-
-                            addTaskToTasksArray(new Task(id, title, description, duedate, done, priority), false);
-                            //actualTasks.add(new Task(id, title,description, duedate, done, priority));
+                        } catch (ParseException e) {
+                            Log.e("Parsing error", "fuck no");
                         }
-                mRefresh.getActionView().clearAnimation();
-                mRefresh.setActionView(null);
-                model.setTaskList(actualTasks);
-                        showList();
 
                     }
-                },
+                    if (!jsonObject.get("enabledDueDate").isJsonNull()) {
+                        String enabledDueDateStr = jsonObject.get("enabledDueDate").toString().replace("\"", "");
+                        if (enabledDueDateStr.equals("0") || enabledDueDateStr.equals("false")) {
+                            hasDueDate = false;
+                        }
+                    }
+                    if (!jsonObject.get("done").isJsonNull()) {
+                        String doneStr = jsonObject.get("done").toString().replace("\"", "");
+                        if (doneStr.equals("1") || doneStr.equals("true")) {
+                            done = true;
+                        }
+                    }
+                    if (jsonObject.get("priority").isJsonNull()) {
+                        try {
+                            priority = jsonObject.get("priority").getAsInt();
+                        } catch (NumberFormatException e) {
+                            Log.e("nfe", "false number");
+                            priority = 0;
+                        }
+
+                    }
+
+                    addTaskToTasksArray(new Task(id, title, description, duedate, done, priority, hasDueDate), false);
+                    //actualTasks.add(new Task(id, title,description, duedate, done, priority));
+                }
+                mRefresh.getActionView().clearAnimation();
+                mRefresh.setActionView(null);
+                refreshList();
+
+            }
+        },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
@@ -375,23 +367,22 @@ public class TaskActivity extends FragmentActivity
 
 
     @Override
-    public void onDialogPositiveClick(String id, String name, GregorianCalendar enddate, String description) {
+    public void onDialogPositiveClick(String id, String name, Boolean dateEnabled, GregorianCalendar enddate, String description) {
         if (!id.equals("")) {
-            for (Task actualTask : actualTasks) {
+            for (Task actualTask : tasksAdapter.getData()) {
                 if (actualTask.getId() == id) {
                     actualTask.setDescription(description);
                     actualTask.setTitle(name);
-                    if (enddate == null) actualTask.setHasEndDate(false);
-                    else actualTask.setEnddate(enddate);
+                    actualTask.setHasEndDate(dateEnabled);
+                    actualTask.setEnddate(enddate);
                     ServerLib.editTask(actualTask, mPreferences, queue);
-                    tasksAdapter.add(actualTask);
+                    refreshList();
                     break;
                 }
             }
         } else {
-            Task newTask = new Task("", name, description, enddate, false, 0);
+            Task newTask = new Task("", name, description, enddate, false, 0, dateEnabled);
             ServerLib.sendTask(newTask, mPreferences, queue);
-            actualTasks.add(0, newTask);
             tasksAdapter.add(newTask);
         }
     }
@@ -399,16 +390,14 @@ public class TaskActivity extends FragmentActivity
     @Override
     public void onDialogNeutralClick(String id) {
         ServerLib.deleteTask(id, mPreferences, queue);
-        for (Task actualTask : actualTasks) {
+        for (Task actualTask : tasksAdapter.getData()) {
             if (actualTask.getId() == id) {
-                actualTasks.remove(actualTask);
                 tasksAdapter.remove(actualTask);
                 tasksAdapter.notifyDataSetChanged();
                 break;
             }
         }
-        model.setTaskList(actualTasks);
-        showList();
+        refreshList();
         lvTasks.invalidateViews();
     }
 
@@ -425,35 +414,40 @@ public class TaskActivity extends FragmentActivity
 
     }
 
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        CheckBox cb = (CheckBox) buttonView;
+        Task task = (Task) cb.getTag();
+        task.setDone(isChecked);
+        ServerLib.editTask(task, mPreferences, queue);
+        refreshList();
+    }
+
     private class PingCheck extends AsyncTask<Void, Void, Boolean> {
 
         @Override
         protected Boolean doInBackground(Void... params) {
             boolean check = false;
-
             check = FktLib.ping(CHECK_URL);
-
             return check;
         }
 
         @Override
         protected void onPostExecute(Boolean result) {
-
             if (result) {
                 //Verbindung besteht
                 getTasks();
             } else {
                 Toast.makeText(ctxt, "Es besteht keine Verbindung zum Server!", Toast.LENGTH_LONG).show();
                 try {
-                    actualTasks = FktLib.readTasks();
+                    tasksAdapter.setData(FktLib.readTasks());
                 } catch (Exception e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
-                    actualTasks = null;
+                    tasksAdapter.setData(new ArrayList<Task>());
                 }
-                if (actualTasks != null) {
-                    model.setTaskList(actualTasks);
-//                    showList();
+                if (tasksAdapter.getCount() > 0) {
+                    refreshList();
                 }
             }
 

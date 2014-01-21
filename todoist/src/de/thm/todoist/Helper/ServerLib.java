@@ -25,17 +25,15 @@ public class ServerLib implements Constants {
             taskObj.put("title", task.getTitle());
             taskObj.put("description", task.getDescription());
             taskObj.put("duedate", task.getDateString());
-            Log.e("duedate", task.getDateString());
+            taskObj.put("enabledDueDate", task.hasEndDate());
             taskObj.put("done", task.isDone());
             taskObj.put("priority", task.getPriority());
-
-
             taskObj.put("id", task.getId());
             holder.put("user_token", mPreferences.getString("AuthToken", ""));
             holder.put("task", taskObj);
 
         } catch (JSONException e) {
-            // TODO Auto-generated catch block
+            Log.e("JSOn exc", "test");
             e.printStackTrace();
         }
         Log.d("holder", holder.toString());
@@ -45,7 +43,7 @@ public class ServerLib implements Constants {
                     public void onResponse(JSONObject response) {
 
 
-                        Log.d("newtask", response.toString());
+                        Log.d("edittask", response.toString());
 
 
                     }
@@ -79,9 +77,9 @@ public class ServerLib implements Constants {
             taskObj.put("title", task.getTitle());
             taskObj.put("description", task.getDescription());
             taskObj.put("duedate", task.getDateString());
+            taskObj.put("enabledDueDate", task.hasEndDate());
             taskObj.put("done", task.isDone());
             taskObj.put("priority", task.getPriority());
-            //holder.put("user_token", mPreferences.getString("AuthToken", ""));
             holder.put("task", taskObj);
 
         } catch (JSONException e) {

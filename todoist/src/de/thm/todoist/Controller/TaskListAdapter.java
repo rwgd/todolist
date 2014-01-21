@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 import de.thm.todoist.Model.Task;
 import de.thm.todoist.R;
@@ -19,12 +20,18 @@ public class TaskListAdapter extends ArrayAdapter<Task> {
 
     private ArrayList<Task> taskList;
     private Context context;
+    private CompoundButton.OnCheckedChangeListener checkedChangeListener;
 
 
-    public TaskListAdapter(ArrayList<Task> taskList, Context ctx) {
+    public TaskListAdapter(ArrayList<Task> taskList, Context ctx, CompoundButton.OnCheckedChangeListener checkedChangeListener) {
         super(ctx, R.layout.row_task, taskList);
         this.taskList = taskList;
         this.context = ctx;
+        this.checkedChangeListener = checkedChangeListener;
+    }
+
+    public ArrayList<Task> getData() {
+        return taskList;
     }
 
     public void setData(ArrayList<Task> newTaskList) {
@@ -59,22 +66,27 @@ public class TaskListAdapter extends ArrayAdapter<Task> {
             TextView endDateView = (TextView) v.findViewById(R.id.tvEnddate);
             CheckBox doneView = (CheckBox) v.findViewById(R.id.doneBox);
 
+
             holder.taskNameView = taskNameView;
             holder.enddateView = endDateView;
             holder.doneView = doneView;
+
 
             v.setTag(holder);
         } else holder = (TaskViewHolder) v.getTag();
 
         Task t = taskList.get(position);
+        holder.doneView.setTag(t);
         holder.taskNameView.setText(t.getTitle());
-        if (t.isHasEndDate()) {
+        if (t.hasEndDate()) {
             holder.enddateView.setVisibility(View.VISIBLE);
-            holder.enddateView.setText("Enddatum: " + t.getDateString());
+            holder.enddateView.setText("Enddatum: " + t.getViewDateString());
         } else {
             holder.enddateView.setVisibility(View.INVISIBLE);
         }
+        holder.doneView.setOnCheckedChangeListener(null);
         holder.doneView.setChecked(t.isDone());
+        holder.doneView.setOnCheckedChangeListener(checkedChangeListener);
         return v;
     }
 
@@ -83,7 +95,7 @@ public class TaskListAdapter extends ArrayAdapter<Task> {
          * It makes the view faster and avoid finding the component
          * **********************************/
 
-    private static class TaskViewHolder {
+    private class TaskViewHolder {
         public TextView taskNameView;
         public TextView enddateView;
         public CheckBox doneView;

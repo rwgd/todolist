@@ -11,6 +11,8 @@ import android.widget.*;
 import de.thm.todoist.Model.Task;
 import de.thm.todoist.R;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.GregorianCalendar;
 
 /**
@@ -28,10 +30,9 @@ public class TaskDialog extends DialogFragment {
     }
 
     public interface NoticeDialogListener {
-        public void onDialogPositiveClick(String id, String name, GregorianCalendar enddate, String description);
+        public void onDialogPositiveClick(String id, String name, Boolean dateEnabled, GregorianCalendar enddate, String description);
 
         public void onDialogNeutralClick(String id);
-
         public void onDialogNegativeClick();
     }
 
@@ -48,8 +49,8 @@ public class TaskDialog extends DialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         // Get the layout inflater
         LayoutInflater inflater = getActivity().getLayoutInflater();
+
         mMainView = (LinearLayout) inflater.inflate(R.layout.dialog_task, null);
-        assert mMainView != null;
         mActivateEnddate = (CheckBox) mMainView.findViewById(R.id.cbActivateDate);
         mDatePicker = (DatePicker) mMainView.findViewById(R.id.taskEndDate);
         mTimePicker = (TimePicker) mMainView.findViewById(R.id.taskEndTime);
@@ -72,11 +73,9 @@ public class TaskDialog extends DialogFragment {
                     public void onClick(DialogInterface dialog, int id) {
                         GregorianCalendar enddate = null;
                         String taskID = "";
-                        if (mActivateEnddate.isChecked()) {
-                            enddate = new GregorianCalendar(mDatePicker.getYear(), mDatePicker.getMonth(), mDatePicker.getDayOfMonth(), mTimePicker.getCurrentHour(), mTimePicker.getCurrentMinute());
-                        }
+                        enddate = new GregorianCalendar(mDatePicker.getYear(), mDatePicker.getMonth(), mDatePicker.getDayOfMonth(), mTimePicker.getCurrentHour(), mTimePicker.getCurrentMinute());
                         if (editableTask != null) taskID = editableTask.getId();
-                        mListener.onDialogPositiveClick(taskID, mTaskName.getText().toString(), enddate, mTaskDesc.getText().toString());
+                        mListener.onDialogPositiveClick(taskID, mTaskName.getText().toString(), mActivateEnddate.isChecked(), enddate, mTaskDesc.getText().toString());
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
@@ -89,9 +88,14 @@ public class TaskDialog extends DialogFragment {
         if (editableTask != null) {
             mTaskName.setText(editableTask.getTitle());
             mTaskDesc.setText(editableTask.getDescription());
-            if (editableTask.getEnddate() == null) {
-                mTimePicker.setEnabled(false);
-                mDatePicker.setEnabled(false);
+            Date enddate = editableTask.getEnddate().getTime();
+            mActivateEnddate.setChecked(editableTask.hasEndDate());
+            mTimePicker.setEnabled(editableTask.hasEndDate());
+            mDatePicker.setEnabled(editableTask.hasEndDate());
+            if (editableTask.getEnddate().compareTo(new GregorianCalendar()) > 0) {
+                mTimePicker.setCurrentHour(editableTask.getEnddate().get(Calendar.HOUR));
+                mTimePicker.setCurrentMinute(editableTask.getEnddate().get(Calendar.MINUTE));
+                mDatePicker.updateDate(editableTask.getEnddate().get(Calendar.YEAR), editableTask.getEnddate().get(Calendar.MONTH), editableTask.getEnddate().get(Calendar.DAY_OF_MONTH));
             }
             builder.setTitle(R.string.editTask);
             builder.setNeutralButton(R.string.deleteTask, new DialogInterface.OnClickListener() {

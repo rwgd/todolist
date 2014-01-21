@@ -30,13 +30,19 @@ public class Task implements Serializable {
         this(id, title, description, enddate, done, priority, true);
     }
 
-    private TimeZone mTZ = TimeZone.getTimeZone("UTC");
-    private DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
+    private TimeZone mTZ = TimeZone.getTimeZone("Europe/Berlin");
+    private DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm.ss.SSS'Z'");
 
     public String getDateString() {
-        if (enddate == null || !hasEndDate) return "";
         df.setTimeZone(mTZ);
         return df.format(enddate.getTime());
+    }
+
+    private DateFormat viewDF = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+
+    public String getViewDateString() {
+        viewDF.setTimeZone(mTZ);
+        return viewDF.format(enddate.getTime());
     }
 
     public String getTitle() {
@@ -99,7 +105,7 @@ public class Task implements Serializable {
     }
 
 
-    public boolean isHasEndDate() {
+    public boolean hasEndDate() {
         return hasEndDate;
     }
 
