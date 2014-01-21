@@ -57,7 +57,7 @@ public class XMLBuilder implements Constants {
                 task.appendChild(description);
 
                 Element enddate = doc.createElement("enddate");
-                enddate.appendChild(doc.createTextNode(taskList.get(i).getEnddate()));
+                enddate.appendChild(doc.createTextNode(taskList.get(i).getEnddate().toString()));
                 task.appendChild(enddate);
 
                 Element done = doc.createElement("done");

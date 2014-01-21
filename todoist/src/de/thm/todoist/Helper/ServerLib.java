@@ -24,7 +24,8 @@ public class ServerLib implements Constants {
 
             taskObj.put("title", task.getTitle());
             taskObj.put("description", task.getDescription());
-            taskObj.put("duedate", task.getEnddate());
+            taskObj.put("duedate", task.getDateString());
+            Log.e("duedate", task.getDateString());
             taskObj.put("done", task.isDone());
             taskObj.put("priority", task.getPriority());
 
@@ -38,7 +39,6 @@ public class ServerLib implements Constants {
             e.printStackTrace();
         }
         Log.d("holder", holder.toString());
-
         JsonObjectRequest req = new JsonObjectRequest(Method.POST, URL, holder,
                 new Response.Listener<JSONObject>() {
                     @Override
@@ -78,7 +78,7 @@ public class ServerLib implements Constants {
         try {
             taskObj.put("title", task.getTitle());
             taskObj.put("description", task.getDescription());
-            taskObj.put("duedate", task.getEnddate());
+            taskObj.put("duedate", task.getDateString());
             taskObj.put("done", task.isDone());
             taskObj.put("priority", task.getPriority());
             //holder.put("user_token", mPreferences.getString("AuthToken", ""));

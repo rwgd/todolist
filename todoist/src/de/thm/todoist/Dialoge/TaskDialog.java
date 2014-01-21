@@ -8,26 +8,31 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.widget.*;
+import de.thm.todoist.Model.Task;
 import de.thm.todoist.R;
+
+import java.util.GregorianCalendar;
 
 /**
  * Created by Benedikt on 17.01.14.
  */
 public class TaskDialog extends DialogFragment {
 
-    private boolean inEditMode = false;
+    private Task editableTask = null;
 
-    public TaskDialog(boolean editMode) {
-        inEditMode = editMode;
+    public TaskDialog(Task task) {
+        editableTask = task;
     }
 
     public TaskDialog() {
     }
 
     public interface NoticeDialogListener {
-        public void onDialogPositiveClick(DialogFragment dialog);
+        public void onDialogPositiveClick(String id, String name, GregorianCalendar enddate, String description);
 
-        public void onDialogNegativeClick(DialogFragment dialog);
+        public void onDialogNeutralClick(String id);
+
+        public void onDialogNegativeClick();
     }
 
     private NoticeDialogListener mListener;
@@ -35,6 +40,8 @@ public class TaskDialog extends DialogFragment {
     private CheckBox mActivateEnddate;
     private DatePicker mDatePicker;
     private TimePicker mTimePicker;
+    private TextView mTaskName;
+    private TextView mTaskDesc;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -46,6 +53,9 @@ public class TaskDialog extends DialogFragment {
         mActivateEnddate = (CheckBox) mMainView.findViewById(R.id.cbActivateDate);
         mDatePicker = (DatePicker) mMainView.findViewById(R.id.taskEndDate);
         mTimePicker = (TimePicker) mMainView.findViewById(R.id.taskEndTime);
+        mTimePicker.setIs24HourView(true);
+        mTaskName = (TextView) mMainView.findViewById(R.id.taskname);
+        mTaskDesc = (TextView) mMainView.findViewById(R.id.taskDescription);
         mActivateEnddate.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -60,19 +70,34 @@ public class TaskDialog extends DialogFragment {
                 .setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
+                        GregorianCalendar enddate = null;
+                        String taskID = "";
+                        if (mActivateEnddate.isChecked()) {
+                            enddate = new GregorianCalendar(mDatePicker.getYear(), mDatePicker.getMonth(), mDatePicker.getDayOfMonth(), mTimePicker.getCurrentHour(), mTimePicker.getCurrentMinute());
+                        }
+                        if (editableTask != null) taskID = editableTask.getId();
+                        mListener.onDialogPositiveClick(taskID, mTaskName.getText().toString(), enddate, mTaskDesc.getText().toString());
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
+                        mListener.onDialogNegativeClick();
                     }
                 });
 
-        if (inEditMode) {
+        if (editableTask != null) {
+            mTaskName.setText(editableTask.getTitle());
+            mTaskDesc.setText(editableTask.getDescription());
+            if (editableTask.getEnddate() == null) {
+                mTimePicker.setEnabled(false);
+                mDatePicker.setEnabled(false);
+            }
             builder.setTitle(R.string.editTask);
             builder.setNeutralButton(R.string.deleteTask, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int id) {
+                    mListener.onDialogNeutralClick(editableTask.getId());
                 }
             });
         } else {

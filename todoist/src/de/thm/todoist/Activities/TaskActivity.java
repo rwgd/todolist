@@ -1,9 +1,7 @@
 package de.thm.todoist.Activities;
 
 import android.app.ActionBar;
-import android.app.DialogFragment;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
@@ -14,7 +12,6 @@ import android.view.*;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -26,8 +23,12 @@ import com.android.volley.toolbox.Volley;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import de.thm.todoist.Controller.TaskListAdapter;
 import de.thm.todoist.Dialoge.TaskDialog;
-import de.thm.todoist.Helper.*;
+import de.thm.todoist.Helper.Constants;
+import de.thm.todoist.Helper.FktLib;
+import de.thm.todoist.Helper.ServerLib;
+import de.thm.todoist.Helper.XMLBuilder;
 import de.thm.todoist.Model.Task;
 import de.thm.todoist.Model.TaskListModel;
 import de.thm.todoist.R;
@@ -36,22 +37,22 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class TaskActivity extends FragmentActivity
-        implements Constants, TaskDialog.NoticeDialogListener {
+        implements Constants, TaskDialog.NoticeDialogListener, AdapterView.OnItemClickListener {
 
     private ListView lvTasks;
     private ArrayList<Task> actualTasks;
-    private ArrayList<HashMap<String, Object>> myList;
+    private TaskListAdapter tasksAdapter;
     private Context ctxt;
     private SharedPreferences mPreferences;
     private static final int REQUEST_PICK_FILE = 1;
     private RequestQueue queue;
     private TaskListModel model;
-    private int position;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,9 +72,10 @@ public class TaskActivity extends FragmentActivity
 
         lvTasks = (ListView) findViewById(R.id.listView1);
 
-        myList = new ArrayList<HashMap<String, Object>>();
         actualTasks = new ArrayList<Task>();
-
+        tasksAdapter = new TaskListAdapter(actualTasks, ctxt);
+        lvTasks.setAdapter(tasksAdapter);
+        lvTasks.setOnItemClickListener(this);
         PingCheck pc = new PingCheck();
         pc.execute();
 
@@ -100,7 +102,6 @@ public class TaskActivity extends FragmentActivity
             }
         }
     }
-
 
     private MenuItem mRefresh = null;
 
@@ -132,10 +133,10 @@ public class TaskActivity extends FragmentActivity
                 return true;
             case R.id.action_refresh:
                 getTasks();
-                //sendTask();
+//                sendTask();
                 return true;
             case R.id.action_new:
-                TaskDialog dialog = new TaskDialog(false);
+                TaskDialog dialog = new TaskDialog();
                 dialog.show(getFragmentManager(), "test");
                 return true;
             case R.id.action_exportxml:
@@ -155,7 +156,7 @@ public class TaskActivity extends FragmentActivity
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             switch (requestCode) {
-                case REQUEST_PICK_FILE:
+                case REQUEST_PICK_FILE: //Wunderlist Import
                     if (data.hasExtra(FilePickerActivity.EXTRA_FILE_PATH)) {
                         // Get the file path
                         File f = new File(
@@ -164,27 +165,25 @@ public class TaskActivity extends FragmentActivity
                             try {
                                 String jsonString = FktLib.readFile(f);
                                 JSONObject jsnobject = new JSONObject(jsonString);
-                                JSONArray jsonArray = jsnobject
-                                        .getJSONArray("tasks");
+                                JSONArray jsonArray = jsnobject.getJSONArray("tasks");
 
                                 for (int i = 0; i < jsonArray.length(); i++) {
-                                    JSONObject explrObject = jsonArray
-                                            .getJSONObject(i);
+                                    JSONObject explrObject = jsonArray.getJSONObject(i);
 
-                                    String date = explrObject
-                                            .getString("created_at");
+                                    String date = explrObject.getString("created_at");
                                     String title = explrObject.getString("title");
+
                                     String id = explrObject.getString("id");
                                     Boolean done = !explrObject
                                             .isNull("completed_at");
-
-                                    addTaskToTasksArray(new Task(id, title,
-                                            "Beschreibung 1", date, done, 0), true);
-
-
+                                    //TODO: String to GregorianCalender
+                                    if (!date.equals("")) {
+//                                        addTaskToTasksArray(new Task(id, title, "", new GregorianCalendar(date), done, 0, false), true);
+                                    } else {
+//                                         addTaskToTasksArray(new Task(id, title, "", null, done, 0, false), true);
+                                    }
                                 }
                                 showList();
-
                             } catch (Exception e) {
                                 // Fehler beim Auslesen der JSON-Datei
                             }
@@ -196,71 +195,9 @@ public class TaskActivity extends FragmentActivity
 
 
     private void showList() {
-        myList.clear();
-        if (actualTasks != null) {
-            if (actualTasks.size() > 0) {
-                for (Task actualTask : actualTasks) {
-                    HashMap<String, Object> map = new HashMap<String, Object>();
-
-                    map.put("task_title", actualTask.getTitle());
-                    map.put("task_enddate", actualTask.getEnddate());
-
-                    if (actualTask.isDone()) {
-                        map.put("task_done", true);
-                    } else {
-                        map.put("task_done", false);
-                    }
-
-                    myList.add(map);
-                }
-
-                ExtendedSimpleAdapter aa = new ExtendedSimpleAdapter(this,
-                        myList, R.layout.row_task, new String[]{"task_title",
-                        "task_enddate", "task_done"}, new int[]{
-                        R.id.tvtaskName,
-                        R.id.tvEnddate,
-                        R.id.imageViewTaskRowDone});
-                lvTasks.setAdapter(aa);
-                lvTasks.setItemsCanFocus(true);
-                lvTasks.setOnItemClickListener(new OnItemClickListener() {
-                    public void onItemClick(AdapterView<?> parent, View view,
-                                            int position, long id) {
-                        TaskDialog dialog = new TaskDialog(true);
-                        dialog.show(getFragmentManager(), "test");
-                    }
-
-
-                });
-
-                aa.notifyDataSetChanged();
-
-
-            }
-        }
-
+//        tasksAdapter.setData(actualTasks);
+        tasksAdapter.notifyDataSetChanged();
     }
-
-
-    DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-            switch (which) {
-                case DialogInterface.BUTTON_POSITIVE:
-                    //Yes button clicked
-                    Log.v("delete: ", "yes");
-                    ServerLib.deleteTask(actualTasks.get(position).getId(), mPreferences, queue);
-                    actualTasks.remove(position);
-                    model.setTaskList(actualTasks);
-                    showList();
-                    lvTasks.invalidateViews();
-                    break;
-
-                case DialogInterface.BUTTON_NEGATIVE:
-                    //No button clicked
-                    break;
-            }
-        }
-    };
 
 
     public void addTaskToTasksArray(Task t, boolean sync) {
@@ -273,8 +210,9 @@ public class TaskActivity extends FragmentActivity
         }
         if (!isTaskInArray) {
             actualTasks.add(t);
+            tasksAdapter.add(t);
+            tasksAdapter.notifyDataSetChanged();
             if (sync) {
-                //direkt synchronisieren
                 ServerLib.sendTask(t, mPreferences, queue);
             }
         }
@@ -288,34 +226,26 @@ public class TaskActivity extends FragmentActivity
         ImageView iv = (ImageView) mInflater.inflate(R.layout.refresh, null);
 
         Animation rotation = AnimationUtils.loadAnimation(this, R.anim.rotate);
-        rotation.setRepeatCount(Animation.INFINITE);
-        iv.startAnimation(rotation);
+        if (rotation != null) {
+            rotation.setRepeatCount(Animation.INFINITE);
+            iv.startAnimation(rotation);
+        }
 
         mRefresh.setActionView(iv);
-        StringRequest postRequest = new StringRequest(Request.Method.GET, URL,
-                new Response.Listener<String>() {
-                    @Override
+        StringRequest postRequest = new StringRequest(Request.Method.GET, URL, new Response.Listener<String>() {
+            @Override
                     public void onResponse(String response) {
                         // response
                         Log.d("Response", response);
-
                         JsonArray jArray = new JsonParser().parse(response).getAsJsonArray();
                         for (int i = 0; i < jArray.size(); i++) {
                             JsonObject jsonObject = jArray.get(i).getAsJsonObject();
-                            Log.d("title", jsonObject.get("title").toString());
-                            Log.d("description", jsonObject.get("description").toString());
-                            Log.d("duedate", jsonObject.get("duedate").toString());
-                            Log.d("done", jsonObject.get("done").toString());
-                            Log.d("priority", jsonObject.get("priority").toString());
-                            Log.d("id", jsonObject.get("id").toString());
-
-                            String id = "000";
+                            String id = "";
                             String title = "";
                             String description = "";
-                            String duedate = "";
+                            GregorianCalendar duedate = null;
                             Boolean done = false;
                             int priority = 0;
-
                             if (!jsonObject.get("id").isJsonNull()) {
                                 id = jsonObject.get("id").toString().replace("\"", "");
                             }
@@ -326,7 +256,16 @@ public class TaskActivity extends FragmentActivity
                                 description = jsonObject.get("description").toString().replace("\"", "");
                             }
                             if (!jsonObject.get("duedate").isJsonNull()) {
-                                duedate = jsonObject.get("duedate").toString().replace("\"", "");
+                                TimeZone tz = TimeZone.getTimeZone("UTC");
+                                DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
+                                df.setTimeZone(tz);
+                                GregorianCalendar cal = new GregorianCalendar();
+                                try {
+                                    cal.setTime(df.parse(jsonObject.get("duedate").toString().replace("\"", "")));
+                                    duedate = cal;
+                                } catch (ParseException e) {
+                                }
+
                             }
                             if (!jsonObject.get("done").isJsonNull()) {
                                 String doneStr = jsonObject.get("done").toString().replace("\"", "");
@@ -338,7 +277,6 @@ public class TaskActivity extends FragmentActivity
                                 try {
                                     priority = jsonObject.get("priority").getAsInt();
                                 } catch (NumberFormatException e) {
-                                    //Error beim parsen
                                     priority = 0;
                                 }
 
@@ -346,10 +284,10 @@ public class TaskActivity extends FragmentActivity
 
                             addTaskToTasksArray(new Task(id, title, description, duedate, done, priority), false);
                             //actualTasks.add(new Task(id, title,description, duedate, done, priority));
-                            mRefresh.getActionView().clearAnimation();
-                            mRefresh.setActionView(null);
                         }
-                        model.setTaskList(actualTasks);
+                mRefresh.getActionView().clearAnimation();
+                mRefresh.setActionView(null);
+                model.setTaskList(actualTasks);
                         showList();
 
                     }
@@ -357,7 +295,8 @@ public class TaskActivity extends FragmentActivity
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        // TODO Auto-generated method stub
+                        if (mRefresh.getActionView() != null) mRefresh.getActionView().clearAnimation();
+                        mRefresh.setActionView(null);
                         Log.d("ERROR", "error => " + error.toString());
                     }
                 }
@@ -375,7 +314,6 @@ public class TaskActivity extends FragmentActivity
         queue.add(postRequest);
 
     }
-
 
     public void logout() {
 
@@ -435,13 +373,55 @@ public class TaskActivity extends FragmentActivity
 
     }
 
+
     @Override
-    public void onDialogPositiveClick(DialogFragment dialog) {
+    public void onDialogPositiveClick(String id, String name, GregorianCalendar enddate, String description) {
+        if (!id.equals("")) {
+            for (Task actualTask : actualTasks) {
+                if (actualTask.getId() == id) {
+                    actualTask.setDescription(description);
+                    actualTask.setTitle(name);
+                    if (enddate == null) actualTask.setHasEndDate(false);
+                    else actualTask.setEnddate(enddate);
+                    ServerLib.editTask(actualTask, mPreferences, queue);
+                    tasksAdapter.add(actualTask);
+                    break;
+                }
+            }
+        } else {
+            Task newTask = new Task("", name, description, enddate, false, 0);
+            ServerLib.sendTask(newTask, mPreferences, queue);
+            actualTasks.add(0, newTask);
+            tasksAdapter.add(newTask);
+        }
+    }
+
+    @Override
+    public void onDialogNeutralClick(String id) {
+        ServerLib.deleteTask(id, mPreferences, queue);
+        for (Task actualTask : actualTasks) {
+            if (actualTask.getId() == id) {
+                actualTasks.remove(actualTask);
+                tasksAdapter.remove(actualTask);
+                tasksAdapter.notifyDataSetChanged();
+                break;
+            }
+        }
+        model.setTaskList(actualTasks);
+        showList();
+        lvTasks.invalidateViews();
+    }
+
+    @Override
+    public void onDialogNegativeClick() {
 
     }
 
     @Override
-    public void onDialogNegativeClick(DialogFragment dialog) {
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        Task choosenTask = tasksAdapter.getItem(position);
+        TaskDialog dialog = new TaskDialog(choosenTask);
+        dialog.show(getFragmentManager(), "test");
 
     }
 
@@ -473,7 +453,7 @@ public class TaskActivity extends FragmentActivity
                 }
                 if (actualTasks != null) {
                     model.setTaskList(actualTasks);
-                    showList();
+//                    showList();
                 }
             }
 
