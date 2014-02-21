@@ -1,5 +1,6 @@
 package de.thm.todoist.Helper;
 
+import android.util.Log;
 import de.thm.todoist.Model.Task;
 
 import java.io.*;
@@ -68,27 +69,47 @@ public class FktLib implements Constants {
     }
 
 
-    public static ArrayList<Task> readTasks() throws Exception {
+    public static ArrayList<Task> readTasks() {
         ArrayList<Task> result = new ArrayList<Task>();
         File f = new File(SAVE_DIR);
 
         if (f.exists()) {
-            fis = new FileInputStream(f);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            result = (ArrayList<Task>) ois.readObject();
+            try {
+                fis = new FileInputStream(f);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+                result = (ArrayList<Task>) ois.readObject();
+                Log.e("loading Tasks from Disc", "successfull");
+            } catch (FileNotFoundException e) {
+                Log.e("loading Tasks from Disc", e.toString());
+            } catch (ClassNotFoundException e) {
+                Log.e("loading Tasks from Disc", e.toString());
+            } catch (OptionalDataException e) {
+                Log.e("loading Tasks from Disc", e.toString());
+            } catch (StreamCorruptedException e) {
+                Log.e("loading Tasks from Disc", e.toString());
+            } catch (IOException e) {
+                Log.e("loading Tasks from Disc", e.toString());
+            }
         }
-
         return result;
-
     }
 
-    public static void saveTasks(ArrayList<Task> taskList) throws Exception {
+    public static void saveTasks(ArrayList<Task> taskList) {
         // Speichern
         File f = new File(SAVE_DIR);
-        fos = new FileOutputStream(f);
-        ObjectOutputStream oos = new ObjectOutputStream(fos);
-        oos.writeObject(taskList);
-        oos.close();
+        ObjectOutputStream oos = null;
+        try {
+            fos = new FileOutputStream(f);
+            oos = new ObjectOutputStream(fos);
+            oos.writeObject(taskList);
+            oos.close();
+            Log.e("saving Tasks on Disc", "sucessfull");
+        } catch (FileNotFoundException e) {
+            Log.e("saving Tasks on Disc", e.getMessage());
+        } catch (IOException e) {
+            Log.e("saving Tasks on Disc", e.getMessage());
+        }
+
 
     }
 

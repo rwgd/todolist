@@ -1,5 +1,10 @@
 package de.thm.todoist.Model;
 
+import android.content.SharedPreferences;
+import com.android.volley.RequestQueue;
+import de.thm.todoist.Activities.TaskActivity;
+import de.thm.todoist.Helper.ServerLib;
+
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -14,6 +19,60 @@ public class Task implements Serializable {
     private boolean hasEndDate;
     private int priority;
     private String id;
+    private SyncState syncState = new StateCreated();
+    private boolean isDeleted = false;
+    private GregorianCalendar last_updated = new GregorianCalendar();
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    abstract class SyncState implements Serializable {
+        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
+        }
+    }
+
+    class StateSynced extends SyncState {
+        @Override
+        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
+            //Do Nothing
+        }
+    }
+
+    class StateEdited extends SyncState {
+        @Override
+        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
+            ServerLib.editTask(Task.this, mPreferences, queue, callingAct, true);
+        }
+    }
+
+    class StateDeleted extends SyncState {
+        @Override
+        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
+            ServerLib.deleteTask(Task.this, mPreferences, queue, callingAct, true);
+        }
+    }
+
+    class StateCreated extends SyncState {
+        @Override
+        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
+            ServerLib.sendTask(Task.this, mPreferences, queue, callingAct, true);
+        }
+    }
+
+    public void setSynced() {
+        this.syncState = new StateSynced();
+    }
+
+    public void delete() {
+        this.syncState = new StateDeleted();
+        isDeleted = true;
+        last_updated = new GregorianCalendar();
+    }
+
+    public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
+        syncState.sync(mPreferences, queue, callingAct);
+    }
 
     public Task(String id, String title, String description, GregorianCalendar enddate, boolean done, int priority, boolean hasEndDate) {
         super();
@@ -38,6 +97,11 @@ public class Task implements Serializable {
         return df.format(enddate.getTime());
     }
 
+    public String getLastUpdatedString() {
+        df.setTimeZone(mTZ);
+        return df.format(last_updated.getTime());
+    }
+
     private DateFormat viewDF = new SimpleDateFormat("dd.MM.yyyy HH:mm");
 
     public String getViewDateString() {
@@ -52,6 +116,8 @@ public class Task implements Serializable {
 
     public void setTitle(String title) {
         this.title = title;
+        this.syncState = new StateEdited();
+        last_updated = new GregorianCalendar();
     }
 
 
@@ -62,6 +128,8 @@ public class Task implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
+        this.syncState = new StateEdited();
+        last_updated = new GregorianCalendar();
     }
 
 
@@ -72,6 +140,8 @@ public class Task implements Serializable {
 
     public void setEnddate(GregorianCalendar enddate) {
         this.enddate = enddate;
+        this.syncState = new StateEdited();
+        last_updated = new GregorianCalendar();
     }
 
 
@@ -82,6 +152,8 @@ public class Task implements Serializable {
 
     public void setDone(boolean done) {
         this.done = done;
+        this.syncState = new StateEdited();
+        last_updated = new GregorianCalendar();
     }
 
 
@@ -92,6 +164,8 @@ public class Task implements Serializable {
 
     public void setPriority(int priority) {
         this.priority = priority;
+        this.syncState = new StateEdited();
+        last_updated = new GregorianCalendar();
     }
 
 
@@ -102,6 +176,8 @@ public class Task implements Serializable {
 
     public void setId(String id) {
         this.id = id;
+        this.syncState = new StateEdited();
+        last_updated = new GregorianCalendar();
     }
 
 
@@ -111,5 +187,7 @@ public class Task implements Serializable {
 
     public void setHasEndDate(boolean hasEndDate) {
         this.hasEndDate = hasEndDate;
+        this.syncState = new StateEdited();
+        last_updated = new GregorianCalendar();
     }
 }

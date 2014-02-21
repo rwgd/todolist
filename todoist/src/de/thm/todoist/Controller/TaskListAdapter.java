@@ -21,13 +21,22 @@ public class TaskListAdapter extends ArrayAdapter<Task> {
     private ArrayList<Task> taskList;
     private Context context;
     private CompoundButton.OnCheckedChangeListener checkedChangeListener;
+    private ArrayList<Task> filteredtaskList;
 
 
     public TaskListAdapter(ArrayList<Task> taskList, Context ctx, CompoundButton.OnCheckedChangeListener checkedChangeListener) {
         super(ctx, R.layout.row_task, taskList);
         this.taskList = taskList;
+        refreshArrayLists();
         this.context = ctx;
         this.checkedChangeListener = checkedChangeListener;
+    }
+
+    public void refreshArrayLists() {
+        filteredtaskList = new ArrayList<Task>();
+        for (Task task : taskList) {
+            if (!task.isDeleted()) filteredtaskList.add(task);
+        }
     }
 
     public ArrayList<Task> getData() {
@@ -36,18 +45,31 @@ public class TaskListAdapter extends ArrayAdapter<Task> {
 
     public void setData(ArrayList<Task> newTaskList) {
         taskList = newTaskList;
+        refreshArrayLists();
     }
 
     public int getCount() {
-        return taskList.size();
+        return filteredtaskList.size();
     }
 
     public Task getItem(int position) {
-        return taskList.get(position);
+        return filteredtaskList.get(position);
     }
 
     public long getItemId(int position) {
         return 0;
+    }
+
+    @Override
+    public void add(Task t) {
+        taskList.add(t);
+        refreshArrayLists();
+    }
+
+    @Override
+    public void remove(Task t) {
+        taskList.remove(t);
+        refreshArrayLists();
     }
 
     public View getView(int position, View convertView, ViewGroup parent) {
@@ -75,7 +97,7 @@ public class TaskListAdapter extends ArrayAdapter<Task> {
             v.setTag(holder);
         } else holder = (TaskViewHolder) v.getTag();
 
-        Task t = taskList.get(position);
+        Task t = filteredtaskList.get(position);
         holder.doneView.setTag(t);
         holder.taskNameView.setText(t.getTitle());
         if (t.hasEndDate()) {

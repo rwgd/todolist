@@ -7,19 +7,13 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
-import android.util.Log;
 import android.view.*;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.*;
-import com.android.volley.*;
-import com.android.volley.Request.Method;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
+import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.devspark.appmsg.AppMsg;
 import de.thm.todoist.Controller.TaskListAdapter;
 import de.thm.todoist.Dialoge.TaskDialog;
 import de.thm.todoist.Helper.Constants;
@@ -29,14 +23,11 @@ import de.thm.todoist.Helper.XMLBuilder;
 import de.thm.todoist.Model.Task;
 import de.thm.todoist.R;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.GregorianCalendar;
 
 public class TaskActivity extends FragmentActivity
         implements Constants, TaskDialog.NoticeDialogListener, AdapterView.OnItemClickListener, CompoundButton.OnCheckedChangeListener {
@@ -56,7 +47,7 @@ public class TaskActivity extends FragmentActivity
 
         ActionBar ab = getActionBar();
         if (ab != null) {
-            ab.setTitle(":todoist");
+            ab.setTitle(this.getString(R.string.app_name));
             ab.setSubtitle("tasks");
         }
 
@@ -64,28 +55,31 @@ public class TaskActivity extends FragmentActivity
         queue = Volley.newRequestQueue(this);
 
         lvTasks = (ListView) findViewById(R.id.listView1);
-
         tasksAdapter = new TaskListAdapter(new ArrayList<Task>(), ctxt, this);
         lvTasks.setAdapter(tasksAdapter);
         lvTasks.setOnItemClickListener(this);
-        PingCheck pc = new PingCheck();
-        pc.execute();
 
     }
 
     public void onResume() {
         super.onResume();
+
+        LoadTasksAsync pc = new LoadTasksAsync();
+        pc.execute();
     }
 
     public void onPause() {
-        super.onPause();
         if (tasksAdapter.getCount() > 0) {
-            try {
-                FktLib.saveTasks(tasksAdapter.getData());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            FktLib.saveTasks(tasksAdapter.getData());
         }
+        super.onPause();
+    }
+
+    public void onDestroy() {
+        if (tasksAdapter.getCount() > 0) {
+            FktLib.saveTasks(tasksAdapter.getData());
+        }
+        super.onDestroy();
     }
 
     private MenuItem mRefresh = null;
@@ -117,6 +111,7 @@ public class TaskActivity extends FragmentActivity
                 startActivityForResult(intent, REQUEST_PICK_FILE);
                 return true;
             case R.id.action_refresh:
+                sendUpdates();
                 getTasks();
 //                sendTask();
                 return true;
@@ -179,7 +174,7 @@ public class TaskActivity extends FragmentActivity
     }
 
 
-    private void refreshList() {
+    public void refreshList() {
         tasksAdapter.notifyDataSetChanged();
     }
 
@@ -196,203 +191,72 @@ public class TaskActivity extends FragmentActivity
             tasksAdapter.add(t);
             tasksAdapter.notifyDataSetChanged();
             if (sync) {
-                ServerLib.sendTask(t, mPreferences, queue);
+                ServerLib.sendTask(t, mPreferences, queue, this);
             }
         }
     }
 
     private LayoutInflater mInflater;
 
-    public void getTasks() {
-        mInflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        String URL = TASKS_URL + "/?user_token=" + mPreferences.getString("AuthToken", "");
-        ImageView iv = (ImageView) mInflater.inflate(R.layout.refresh, null);
+    public void sendUpdates() {
+        for (Task task : tasksAdapter.getData()) {
+            task.sync(mPreferences, queue, this);
+        }
+    }
 
+    public void getTasks() {
+        if (mInflater == null) mInflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        ImageView iv = (ImageView) mInflater.inflate(R.layout.refresh, null);
         Animation rotation = AnimationUtils.loadAnimation(this, R.anim.rotate);
-        if (rotation != null) {
+        if (rotation != null && iv != null && mRefresh != null) {
             rotation.setRepeatCount(Animation.INFINITE);
             iv.startAnimation(rotation);
+            mRefresh.setActionView(iv);
         }
-
-        mRefresh.setActionView(iv);
-        StringRequest postRequest = new StringRequest(Request.Method.GET, URL, new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                // response
-                Log.d("Response", response);
-                JsonArray jArray = new JsonParser().parse(response).getAsJsonArray();
-                for (int i = 0; i < jArray.size(); i++) {
-                    JsonObject jsonObject = jArray.get(i).getAsJsonObject();
-                    String id = "";
-                    String title = "";
-                    String description = "";
-                    GregorianCalendar duedate = null;
-                    Boolean done = false;
-                    Boolean hasDueDate = true;
-                    int priority = 0;
-                    if (!jsonObject.get("id").isJsonNull()) {
-                        id = jsonObject.get("id").toString().replace("\"", "");
-                    }
-                    if (!jsonObject.get("title").isJsonNull()) {
-                        title = jsonObject.get("title").toString().replace("\"", "");
-                    }
-                    if (!jsonObject.get("description").isJsonNull()) {
-                        description = jsonObject.get("description").toString().replace("\"", "");
-                    }
-                    if (!jsonObject.get("duedate").isJsonNull()) {
-                        TimeZone tz = TimeZone.getTimeZone("Europe/Berlin");
-                        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-                        df.setTimeZone(tz);
-                        GregorianCalendar cal = new GregorianCalendar();
-                        try {
-                            cal.setTime(df.parse(jsonObject.get("duedate").toString().replace("\"", "").substring(0, 19)));
-                            duedate = cal;
-
-                        } catch (ParseException e) {
-                            Log.e("Parsing error", "fuck no");
-                        }
-
-                    }
-                    if (!jsonObject.get("enabledDueDate").isJsonNull()) {
-                        String enabledDueDateStr = jsonObject.get("enabledDueDate").toString().replace("\"", "");
-                        if (enabledDueDateStr.equals("0") || enabledDueDateStr.equals("false")) {
-                            hasDueDate = false;
-                        }
-                    }
-                    if (!jsonObject.get("done").isJsonNull()) {
-                        String doneStr = jsonObject.get("done").toString().replace("\"", "");
-                        if (doneStr.equals("1") || doneStr.equals("true")) {
-                            done = true;
-                        }
-                    }
-                    if (jsonObject.get("priority").isJsonNull()) {
-                        try {
-                            priority = jsonObject.get("priority").getAsInt();
-                        } catch (NumberFormatException e) {
-                            Log.e("nfe", "false number");
-                            priority = 0;
-                        }
-
-                    }
-
-                    addTaskToTasksArray(new Task(id, title, description, duedate, done, priority, hasDueDate), false);
-                    //actualTasks.add(new Task(id, title,description, duedate, done, priority));
-                }
-                mRefresh.getActionView().clearAnimation();
-                mRefresh.setActionView(null);
-                refreshList();
-
-            }
-        },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        if (mRefresh.getActionView() != null) mRefresh.getActionView().clearAnimation();
-                        mRefresh.setActionView(null);
-                        Log.d("ERROR", "error => " + error.toString());
-                    }
-                }
-        ) {
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
-                Map<String, String> params = new HashMap<String, String>();
-                params.put("Content-Type", "application/json");
-                params.put("Accept", "application/json");
-
-                return params;
-            }
-        };
-
-        queue.add(postRequest);
-
+        ServerLib.getAllTasks(mPreferences, queue, this);
     }
 
     public void logout() {
-
-        JSONObject authObj = new JSONObject();
-        try {
-            authObj.put("user_token", mPreferences.getString("AuthToken", ""));
-        } catch (JSONException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        JsonObjectRequest req = new JsonObjectRequest(Method.DELETE, LOGOUT_URL, authObj,
-                new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-
-
-                        try {
-                            if (response.getBoolean("success")) {
-                                SharedPreferences.Editor editor = mPreferences.edit();
-                                editor.remove("AuthToken");
-                                editor.remove("UserMail");
-                                editor.commit();
-
-                                Intent intent = new Intent(TaskActivity.this,
-                                        LoginActivity.class);
-                                startActivityForResult(intent, 0);
-                            }
-                            Toast.makeText(ctxt, response.getString("info"),
-                                    Toast.LENGTH_LONG).show();
-                        } catch (Exception e) {
-                            Toast.makeText(ctxt, e.getMessage(), Toast.LENGTH_LONG)
-                                    .show();
-
-
-                        }
-                    }
-                }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                VolleyLog.e("Error: ", error.getMessage());
-            }
-        }
-        ) {
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
-                Map<String, String> params = new HashMap<String, String>();
-                params.put("Content-Type", "application/json");
-                params.put("Accept", "application/json");
-                params.put("X-AUTH-TOKEN", mPreferences.getString("AuthToken", ""));
-
-                return params;
-            }
-        };
-
-        queue.add(req);
-
+        ServerLib.logout(mPreferences, queue, this);
     }
 
+    public void stopRefreshView() {
+        if (mRefresh.getActionView() != null) {
+            mRefresh.getActionView().clearAnimation();
+            mRefresh.setActionView(null);
+        }
+
+    }
 
     @Override
     public void onDialogPositiveClick(String id, String name, Boolean dateEnabled, GregorianCalendar enddate, String description) {
         if (!id.equals("")) {
             for (Task actualTask : tasksAdapter.getData()) {
-                if (actualTask.getId() == id) {
+                if (actualTask.getId().equals(id)) {
                     actualTask.setDescription(description);
                     actualTask.setTitle(name);
                     actualTask.setHasEndDate(dateEnabled);
                     actualTask.setEnddate(enddate);
-                    ServerLib.editTask(actualTask, mPreferences, queue);
+                    ServerLib.editTask(actualTask, mPreferences, queue, this);
                     refreshList();
                     break;
                 }
             }
         } else {
             Task newTask = new Task("", name, description, enddate, false, 0, dateEnabled);
-            ServerLib.sendTask(newTask, mPreferences, queue);
+            ServerLib.sendTask(newTask, mPreferences, queue, this);
             tasksAdapter.add(newTask);
+            refreshList();
         }
     }
 
     @Override
     public void onDialogNeutralClick(String id) {
-        ServerLib.deleteTask(id, mPreferences, queue);
         for (Task actualTask : tasksAdapter.getData()) {
-            if (actualTask.getId() == id) {
-                tasksAdapter.remove(actualTask);
+            if (actualTask.getId().equals(id)) {
+                ServerLib.deleteTask(actualTask, mPreferences, queue, this);
+                actualTask.delete();
+                tasksAdapter.refreshArrayLists();
                 tasksAdapter.notifyDataSetChanged();
                 break;
             }
@@ -400,6 +264,17 @@ public class TaskActivity extends FragmentActivity
         refreshList();
         lvTasks.invalidateViews();
     }
+
+    public void deleteTask(Task t) {
+        for (Task actualTask : tasksAdapter.getData()) {
+            if (actualTask.getId().equals(t.getId())) {
+                tasksAdapter.remove(actualTask);
+                tasksAdapter.notifyDataSetChanged();
+                break;
+            }
+        }
+    }
+
 
     @Override
     public void onDialogNegativeClick() {
@@ -419,15 +294,17 @@ public class TaskActivity extends FragmentActivity
         CheckBox cb = (CheckBox) buttonView;
         Task task = (Task) cb.getTag();
         task.setDone(isChecked);
-        ServerLib.editTask(task, mPreferences, queue);
+        ServerLib.editTask(task, mPreferences, queue, this);
         refreshList();
     }
 
-    private class PingCheck extends AsyncTask<Void, Void, Boolean> {
-
+    private class LoadTasksAsync extends AsyncTask<Void, Void, Boolean> {
         @Override
         protected Boolean doInBackground(Void... params) {
-            boolean check = false;
+            ArrayList<Task> tasks = FktLib.readTasks();
+            tasksAdapter.setData(tasks);
+            sendUpdates();
+            boolean check;
             check = FktLib.ping(CHECK_URL);
             return check;
         }
@@ -435,20 +312,13 @@ public class TaskActivity extends FragmentActivity
         @Override
         protected void onPostExecute(Boolean result) {
             if (result) {
-                //Verbindung besteht
                 getTasks();
             } else {
-                Toast.makeText(ctxt, "Es besteht keine Verbindung zum Server!", Toast.LENGTH_LONG).show();
-                try {
-                    tasksAdapter.setData(FktLib.readTasks());
-                } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                    tasksAdapter.setData(new ArrayList<Task>());
-                }
-                if (tasksAdapter.getCount() > 0) {
-                    refreshList();
-                }
+                AppMsg.makeText(TaskActivity.this, TaskActivity.this.getText(R.string.no_server_connection), AppMsg.STYLE_ALERT).show();
+            }
+            if (tasksAdapter.getCount() > 0) {
+                refreshList();
+                FktLib.saveTasks(tasksAdapter.getData());
             }
 
         }

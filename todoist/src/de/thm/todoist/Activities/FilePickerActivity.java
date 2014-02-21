@@ -54,8 +54,10 @@ public class FilePickerActivity extends ListActivity {
         super.onCreate(savedInstanceState);
 
         ActionBar ab = getActionBar();
-        ab.setTitle(":todoist");
-        ab.setSubtitle("pick a wunderlist file");
+        if (ab != null) {
+            ab.setTitle(this.getString(R.string.app_name));
+            ab.setSubtitle("pick a wunderlist file");
+        }
 
         // Set the view to be shown if the list is empty
         LayoutInflater inflator = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -139,17 +141,19 @@ public class FilePickerActivity extends ListActivity {
     protected void onListItemClick(ListView l, View v, int position, long id) {
         File newFile = (File) l.getItemAtPosition(position);
 
-        if (newFile.isFile()) {
-            // Set result
-            Intent extra = new Intent();
-            extra.putExtra(EXTRA_FILE_PATH, newFile.getAbsolutePath());
-            setResult(RESULT_OK, extra);
-            // Finish the activity
-            finish();
-        } else {
-            mDirectory = newFile;
-            // Update the files list
-            refreshFilesList();
+        if (newFile != null) {
+            if (newFile.isFile()) {
+                // Set result
+                Intent extra = new Intent();
+                extra.putExtra(EXTRA_FILE_PATH, newFile.getAbsolutePath());
+                setResult(RESULT_OK, extra);
+                // Finish the activity
+                finish();
+            } else {
+                mDirectory = newFile;
+                // Update the files list
+                refreshFilesList();
+            }
         }
 
         super.onListItemClick(l, v, position, id);

@@ -37,8 +37,11 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
         context = this;
 
         ActionBar ab = getActionBar();
-        ab.setTitle(":todoist");
-        ab.setSubtitle("register");
+        if (ab != null) {
+            ab.setTitle(this.getString(R.string.app_name));
+            ab.setSubtitle("tasks");
+        }
+
 
         queue = Volley.newRequestQueue(this);
 
