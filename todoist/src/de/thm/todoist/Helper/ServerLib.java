@@ -41,7 +41,7 @@ public class ServerLib implements Constants {
             holder.put("editDate", task.getLastUpdatedString());
             taskObj.put("title", task.getTitle());
             taskObj.put("description", task.getDescription());
-            taskObj.put("duedate", task.getDateString());
+            taskObj.put("duedate", task.getEndDateString());
             taskObj.put("enabledDueDate", task.hasEndDate());
             taskObj.put("done", task.isDone());
             taskObj.put("priority", task.getPriority());
@@ -94,7 +94,7 @@ public class ServerLib implements Constants {
             holder.put("editDate", task.getLastUpdatedString());
             taskObj.put("title", task.getTitle());
             taskObj.put("description", task.getDescription());
-            taskObj.put("duedate", task.getDateString());
+            taskObj.put("duedate", task.getEndDateString());
             taskObj.put("enabledDueDate", task.hasEndDate());
             taskObj.put("done", task.isDone());
             taskObj.put("priority", task.getPriority());
@@ -155,6 +155,7 @@ public class ServerLib implements Constants {
             public void onResponse(String response) {
                 // response
                 Log.d("Response", response);
+                callingAct.deleteAllTasks();
                 JsonArray jArray = new JsonParser().parse(response).getAsJsonArray();
                 for (int i = 0; i < jArray.size(); i++) {
                     JsonObject jsonObject = jArray.get(i).getAsJsonObject();
@@ -211,7 +212,7 @@ public class ServerLib implements Constants {
 
                     Task newTask = new Task(id, title, description, duedate, done, priority, hasDueDate);
                     newTask.setSynced();
-                    callingAct.addTaskToTasksArray(newTask, false);
+                    callingAct.addTaskToTasksArray(newTask);
                 }
                 callingAct.stopRefreshView();
                 callingAct.refreshList();

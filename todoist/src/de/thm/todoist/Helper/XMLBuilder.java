@@ -1,7 +1,7 @@
 package de.thm.todoist.Helper;
 
-import android.content.Context;
-import android.widget.Toast;
+import android.app.Activity;
+import com.devspark.appmsg.AppMsg;
 import de.thm.todoist.Model.Task;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
@@ -9,7 +9,10 @@ import org.w3c.dom.Element;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
@@ -18,75 +21,88 @@ import java.util.ArrayList;
 
 public class XMLBuilder implements Constants {
 
-    private ArrayList<Task> taskList;
-    private Context ctxt;
+    private Activity ctxt;
 
-    public XMLBuilder(ArrayList<Task> taskList, Context ctxt) {
+    public XMLBuilder(Activity ctxt) {
         super();
-        this.taskList = taskList;
         this.ctxt = ctxt;
     }
 
-    public boolean generateXML() throws Exception {
+    public boolean generateXML(ArrayList<Task> taskList, boolean silently, String filePath) {
 
         boolean result = false;
         if (taskList != null) {
 
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            try {
+                DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+                Document doc = docBuilder.newDocument();
+                Element rootElement = doc.createElement("todoist");
+                doc.appendChild(rootElement);
 
-            Document doc = docBuilder.newDocument();
-            Element rootElement = doc.createElement("todoist");
-            doc.appendChild(rootElement);
+                for (Task aTaskList : taskList) {
 
-            for (int i = 0; i < taskList.size(); i++) {
+                    Element task = doc.createElement("task");
+                    rootElement.appendChild(task);
 
-                Element task = doc.createElement("task");
-                rootElement.appendChild(task);
+                    Attr id = doc.createAttribute("id");
+                    id.setValue(aTaskList.getId());
+                    task.setAttributeNode(id);
 
-                Attr attr = doc.createAttribute("id");
-                attr.setValue(taskList.get(i).getId());
-                task.setAttributeNode(attr);
+                    Attr isDeleted = doc.createAttribute("isDeleted");
+                    isDeleted.setValue(String.valueOf(aTaskList.isDeleted()));
+                    task.setAttributeNode(isDeleted);
 
-                Element title = doc.createElement("title");
-                title.appendChild(doc.createTextNode(taskList.get(i).getTitle()));
-                task.appendChild(title);
+                    Element title = doc.createElement("title");
+                    title.appendChild(doc.createTextNode(aTaskList.getTitle()));
+                    task.appendChild(title);
 
-                Element description = doc.createElement("description");
-                description.appendChild(doc.createTextNode(taskList.get(i).getDescription()));
-                task.appendChild(description);
+                    Element description = doc.createElement("description");
+                    description.appendChild(doc.createTextNode(aTaskList.getDescription()));
+                    task.appendChild(description);
 
-                Element enddate = doc.createElement("enddate");
-                enddate.appendChild(doc.createTextNode(taskList.get(i).getEnddate().toString()));
-                task.appendChild(enddate);
+                    Element enddate = doc.createElement("enddate");
+                    enddate.appendChild(doc.createTextNode(aTaskList.getEndDateString()));
+                    task.appendChild(enddate);
 
-                Element done = doc.createElement("done");
-                done.appendChild(doc.createTextNode(String.valueOf(taskList.get(i).isDone())));
-                task.appendChild(done);
+                    Attr hasEndDate = doc.createAttribute("endEnabled");
+                    hasEndDate.setValue(Boolean.toString(aTaskList.hasEndDate()));
+                    enddate.setAttributeNode(hasEndDate);
 
-                Element priority = doc.createElement("priority");
-                priority.appendChild(doc.createTextNode(String.valueOf(taskList.get(i).getPriority())));
-                task.appendChild(priority);
+                    Element done = doc.createElement("done");
+                    done.appendChild(doc.createTextNode(String.valueOf(aTaskList.isDone())));
+                    task.appendChild(done);
 
+                    Element priority = doc.createElement("priority");
+                    priority.appendChild(doc.createTextNode(String.valueOf(aTaskList.getPriority())));
+                    task.appendChild(priority);
+
+                    Element state = doc.createElement("state");
+                    state.appendChild(doc.createTextNode(String.valueOf(aTaskList.getMode())));
+                    task.appendChild(state);
+
+                    Element lastUpdate = doc.createElement("last_updated");
+                    lastUpdate.appendChild(doc.createTextNode(aTaskList.getLastUpdatedString()));
+                    task.appendChild(lastUpdate);
+
+                    result = true;
+
+                }
+
+                TransformerFactory transformerFactory = TransformerFactory.newInstance();
+                Transformer transformer = transformerFactory.newTransformer();
+                DOMSource source = new DOMSource(doc);
+                StreamResult resultStr = new StreamResult(new File(filePath));
+                transformer.transform(source, resultStr);
+
+                if (!silently) AppMsg.makeText(ctxt, "File saved to: " + filePath, AppMsg.STYLE_INFO).show();
+            } catch (ParserConfigurationException e) {
+                e.printStackTrace();
+            } catch (TransformerConfigurationException e) {
+                e.printStackTrace();
+            } catch (TransformerException e) {
+                e.printStackTrace();
             }
-
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            DOMSource source = new DOMSource(doc);
-            StreamResult resultStr = new StreamResult(new File(SAVE_DIR_XML));
-            transformer.transform(source, resultStr);
-
-            Toast.makeText(ctxt, "File saved to: " + SAVE_DIR_XML, Toast.LENGTH_LONG).show();
-
-			/*	 Transformer transformer = TransformerFactory.newInstance().newTransformer();
-             StreamResult resultStr = new StreamResult(new StringWriter());
-			 DOMSource source = new DOMSource(doc);
-			 transformer.transform(source, resultStr);
-			 String test =  resultStr.getWriter().toString();
-			 
-			 Log.e("testXML", test);*/
-
-
         }
 
         return result;

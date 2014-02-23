@@ -1,12 +1,12 @@
 package de.thm.todoist.Helper;
 
-import android.util.Log;
-import de.thm.todoist.Model.Task;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Scanner;
 
 public class FktLib implements Constants {
@@ -53,7 +53,7 @@ public class FktLib implements Constants {
                 // Response Status code
                 int code = con.getResponseCode();
                 // Check if it belongs to 2xx / 3xx
-                char[] codeArray = new Integer(code).toString().toCharArray();
+                char[] codeArray = Integer.valueOf(code).toString().toCharArray();
                 if (codeArray[0] == '2' || codeArray[0] == '3') {
                     res = true;
                 }
@@ -67,60 +67,5 @@ public class FktLib implements Constants {
         }
         return res;
     }
-
-
-    public static ArrayList<Task> readTasks() {
-        ArrayList<Task> result = new ArrayList<Task>();
-        File f = new File(SAVE_DIR);
-
-        if (f.exists()) {
-            try {
-                fis = new FileInputStream(f);
-                ObjectInputStream ois = new ObjectInputStream(fis);
-                result = (ArrayList<Task>) ois.readObject();
-                Log.e("loading Tasks from Disc", "successfull");
-            } catch (FileNotFoundException e) {
-                Log.e("loading Tasks from Disc", e.toString());
-            } catch (ClassNotFoundException e) {
-                Log.e("loading Tasks from Disc", e.toString());
-            } catch (OptionalDataException e) {
-                Log.e("loading Tasks from Disc", e.toString());
-            } catch (StreamCorruptedException e) {
-                Log.e("loading Tasks from Disc", e.toString());
-            } catch (IOException e) {
-                Log.e("loading Tasks from Disc", e.toString());
-            }
-        }
-        return result;
-    }
-
-    public static void saveTasks(ArrayList<Task> taskList) {
-        // Speichern
-        File f = new File(SAVE_DIR);
-        ObjectOutputStream oos = null;
-        try {
-            fos = new FileOutputStream(f);
-            oos = new ObjectOutputStream(fos);
-            oos.writeObject(taskList);
-            oos.close();
-            Log.e("saving Tasks on Disc", "sucessfull");
-        } catch (FileNotFoundException e) {
-            Log.e("saving Tasks on Disc", e.getMessage());
-        } catch (IOException e) {
-            Log.e("saving Tasks on Disc", e.getMessage());
-        }
-
-
-    }
-
-    public static void deleteAllTasks() throws Exception {
-        ArrayList<Task> taskList = new ArrayList<Task>();
-        File f = new File(SAVE_DIR);
-        fos = new FileOutputStream(f);
-        ObjectOutputStream oos = new ObjectOutputStream(fos);
-        oos.writeObject(taskList);
-        oos.close();
-    }
-
 
 }

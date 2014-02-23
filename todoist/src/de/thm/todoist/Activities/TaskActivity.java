@@ -16,10 +16,7 @@ import com.android.volley.toolbox.Volley;
 import com.devspark.appmsg.AppMsg;
 import de.thm.todoist.Controller.TaskListAdapter;
 import de.thm.todoist.Dialoge.TaskDialog;
-import de.thm.todoist.Helper.Constants;
-import de.thm.todoist.Helper.FktLib;
-import de.thm.todoist.Helper.ServerLib;
-import de.thm.todoist.Helper.XMLBuilder;
+import de.thm.todoist.Helper.*;
 import de.thm.todoist.Model.Task;
 import de.thm.todoist.R;
 import org.json.JSONArray;
@@ -28,6 +25,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
+import java.util.UUID;
 
 public class TaskActivity extends FragmentActivity
         implements Constants, TaskDialog.NoticeDialogListener, AdapterView.OnItemClickListener, CompoundButton.OnCheckedChangeListener {
@@ -38,6 +36,8 @@ public class TaskActivity extends FragmentActivity
     private SharedPreferences mPreferences;
     private static final int REQUEST_PICK_FILE = 1;
     private RequestQueue queue;
+    private XMLBuilder xmlb;
+    private XMLReader xmlR;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,22 +63,20 @@ public class TaskActivity extends FragmentActivity
 
     public void onResume() {
         super.onResume();
-
+        xmlb = new XMLBuilder(this);
+        xmlR = new XMLReader(this);
+        ArrayList<Task> tasks = xmlR.loadXML(true, Constants.SAVE_DIR);
+        tasksAdapter.setData(tasks);
         LoadTasksAsync pc = new LoadTasksAsync();
         pc.execute();
     }
 
     public void onPause() {
-        if (tasksAdapter.getCount() > 0) {
-            FktLib.saveTasks(tasksAdapter.getData());
-        }
+        xmlb.generateXML(tasksAdapter.getData(), true, Constants.SAVE_DIR);
         super.onPause();
     }
 
     public void onDestroy() {
-        if (tasksAdapter.getCount() > 0) {
-            FktLib.saveTasks(tasksAdapter.getData());
-        }
         super.onDestroy();
     }
 
@@ -97,9 +95,11 @@ public class TaskActivity extends FragmentActivity
         // Take appropriate action for each action item click
         switch (item.getItemId()) {
             case R.id.action_backspace:
+                xmlb.generateXML(tasksAdapter.getData(), true, Constants.SAVE_DIR);
                 logout();
                 return true;
             case R.id.action_import_export:
+                xmlb.generateXML(tasksAdapter.getData(), true, Constants.SAVE_DIR);
                 Intent intent = new Intent(this, FilePickerActivity.class);
                 intent.putExtra(FilePickerActivity.EXTRA_SHOW_HIDDEN_FILES, true);
                 // Only make .json files visible
@@ -111,21 +111,16 @@ public class TaskActivity extends FragmentActivity
                 startActivityForResult(intent, REQUEST_PICK_FILE);
                 return true;
             case R.id.action_refresh:
+                xmlb.generateXML(tasksAdapter.getData(), true, Constants.SAVE_DIR);
                 sendUpdates();
                 getTasks();
-//                sendTask();
                 return true;
             case R.id.action_new:
                 TaskDialog dialog = new TaskDialog();
                 dialog.show(getFragmentManager(), "test");
                 return true;
             case R.id.action_exportxml:
-                XMLBuilder xmlb = new XMLBuilder(tasksAdapter.getData(), this);
-                try {
-                    xmlb.generateXML();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                xmlb.generateXML(tasksAdapter.getData(), false, Constants.SAVE_DIR_XML);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -175,25 +170,35 @@ public class TaskActivity extends FragmentActivity
 
 
     public void refreshList() {
+        tasksAdapter.refreshArrayLists();
+        xmlb.generateXML(tasksAdapter.getData(), true, Constants.SAVE_DIR);
         tasksAdapter.notifyDataSetChanged();
     }
 
 
-    public void addTaskToTasksArray(Task t, boolean sync) {
+    public void deleteAllTasks() {
+        tasksAdapter.setData(new ArrayList<Task>());
+    }
 
-        boolean isTaskInArray = false;
-        for (Task actualTask : tasksAdapter.getData()) {
-            if (actualTask.getId().equals(t.getId())) {
-                isTaskInArray = true;
+    public void addTaskToTasksArray(Task t) {
+        ArrayList<Task> tempTaskList = tasksAdapter.getData();
+        boolean inArray = false;
+        for (int i = 0; i < tempTaskList.size(); i++) {
+            Task savedTask = tempTaskList.get(i);
+            if (savedTask.getId().equals(t.getId())) {
+                if (savedTask.getMode() != 0 && savedTask.getLastUpdated().after(t.getId())) {
+                    ServerLib.sendTask(savedTask, mPreferences, queue, this);
+                } else {
+                    tempTaskList.remove(i);
+                    tempTaskList.add(i, t);
+                }
+                inArray = true;
+                break;
             }
         }
-        if (!isTaskInArray) {
-            tasksAdapter.add(t);
-            tasksAdapter.notifyDataSetChanged();
-            if (sync) {
-                ServerLib.sendTask(t, mPreferences, queue, this);
-            }
-        }
+        if (!inArray) tempTaskList.add(t);
+        tasksAdapter.setData(tempTaskList);
+        refreshList();
     }
 
     private LayoutInflater mInflater;
@@ -237,27 +242,26 @@ public class TaskActivity extends FragmentActivity
                     actualTask.setTitle(name);
                     actualTask.setHasEndDate(dateEnabled);
                     actualTask.setEnddate(enddate);
-                    ServerLib.editTask(actualTask, mPreferences, queue, this);
-                    refreshList();
+                    actualTask.sync(mPreferences, queue, this);
                     break;
                 }
             }
         } else {
-            Task newTask = new Task("", name, description, enddate, false, 0, dateEnabled);
+            Task newTask = new Task(UUID.randomUUID().toString(), name, description, enddate, false, 0, dateEnabled);
             ServerLib.sendTask(newTask, mPreferences, queue, this);
-            tasksAdapter.add(newTask);
-            refreshList();
+            addTaskToTasksArray(newTask);
         }
+        tasksAdapter.refreshArrayLists();
+        refreshList();
     }
 
     @Override
     public void onDialogNeutralClick(String id) {
         for (Task actualTask : tasksAdapter.getData()) {
             if (actualTask.getId().equals(id)) {
-                ServerLib.deleteTask(actualTask, mPreferences, queue, this);
                 actualTask.delete();
+                actualTask.sync(mPreferences, queue, this);
                 tasksAdapter.refreshArrayLists();
-                tasksAdapter.notifyDataSetChanged();
                 break;
             }
         }
@@ -269,10 +273,11 @@ public class TaskActivity extends FragmentActivity
         for (Task actualTask : tasksAdapter.getData()) {
             if (actualTask.getId().equals(t.getId())) {
                 tasksAdapter.remove(actualTask);
-                tasksAdapter.notifyDataSetChanged();
                 break;
             }
         }
+        tasksAdapter.refreshArrayLists();
+        refreshList();
     }
 
 
@@ -301,8 +306,6 @@ public class TaskActivity extends FragmentActivity
     private class LoadTasksAsync extends AsyncTask<Void, Void, Boolean> {
         @Override
         protected Boolean doInBackground(Void... params) {
-            ArrayList<Task> tasks = FktLib.readTasks();
-            tasksAdapter.setData(tasks);
             sendUpdates();
             boolean check;
             check = FktLib.ping(CHECK_URL);
@@ -312,13 +315,13 @@ public class TaskActivity extends FragmentActivity
         @Override
         protected void onPostExecute(Boolean result) {
             if (result) {
+
                 getTasks();
             } else {
                 AppMsg.makeText(TaskActivity.this, TaskActivity.this.getText(R.string.no_server_connection), AppMsg.STYLE_ALERT).show();
             }
             if (tasksAdapter.getCount() > 0) {
                 refreshList();
-                FktLib.saveTasks(tasksAdapter.getData());
             }
 
         }

@@ -35,4 +35,5 @@
     <string name="email_label">E-Mail:</string>
     <string name="login">Login</string>
     <string name="password_label">Password:</string>
+    <string name="import_fail">Fehler beim Import der Daten - Alle nicht synchronisierten Daten sind verloren.</string>
 </resources>
