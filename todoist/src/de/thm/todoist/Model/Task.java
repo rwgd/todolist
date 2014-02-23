@@ -1,6 +1,7 @@
 package de.thm.todoist.Model;
 
 import android.content.SharedPreferences;
+import android.util.Log;
 import com.android.volley.RequestQueue;
 import de.thm.todoist.Activities.TaskActivity;
 import de.thm.todoist.Helper.ServerLib;
@@ -30,12 +31,22 @@ public class Task implements Serializable {
     abstract class SyncState implements Serializable {
         public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
         }
+
+        public boolean isSynced() {
+            return false;
+        }
+
+        public void changeToState(SyncState newState) {
+            if (newState instanceof StateCreated)
+                Log.e("This should not happen", "You try to create a Task, which is allready created");
+            syncState = newState;
+            last_updated = new GregorianCalendar();
+        }
     }
 
     class StateSynced extends SyncState {
-        @Override
-        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
-            //Do Nothing
+        public boolean isSynced() {
+            return true;
         }
     }
 
@@ -58,17 +69,27 @@ public class Task implements Serializable {
         public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
             ServerLib.sendTask(Task.this, mPreferences, queue, callingAct, true);
         }
+
+        public void changeToState(SyncState newState) {
+            if (newState instanceof StateSynced) syncState = newState;
+            if (newState instanceof StateDeleted) syncState = new StateSynced();
+            last_updated = new GregorianCalendar();
+        }
+    }
+
+    public boolean isSynced() {
+        return syncState.isSynced();
     }
 
     public void setSynced() {
-        this.syncState = new StateSynced();
+        syncState.changeToState(new StateSynced());
     }
 
     public void delete() {
-        this.syncState = new StateDeleted();
+        syncState.changeToState(new StateDeleted());
         isDeleted = true;
-        last_updated = new GregorianCalendar();
     }
+
 
     public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
         syncState.sync(mPreferences, queue, callingAct);
@@ -116,8 +137,7 @@ public class Task implements Serializable {
 
     public void setTitle(String title) {
         this.title = title;
-        this.syncState = new StateEdited();
-        last_updated = new GregorianCalendar();
+        syncState.changeToState(new StateEdited());
     }
 
 
@@ -128,8 +148,7 @@ public class Task implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
-        this.syncState = new StateEdited();
-        last_updated = new GregorianCalendar();
+        syncState.changeToState(new StateEdited());
     }
 
 
@@ -140,8 +159,7 @@ public class Task implements Serializable {
 
     public void setEnddate(GregorianCalendar enddate) {
         this.enddate = enddate;
-        this.syncState = new StateEdited();
-        last_updated = new GregorianCalendar();
+        syncState.changeToState(new StateEdited());
     }
 
 
@@ -152,8 +170,7 @@ public class Task implements Serializable {
 
     public void setDone(boolean done) {
         this.done = done;
-        this.syncState = new StateEdited();
-        last_updated = new GregorianCalendar();
+        syncState.changeToState(new StateEdited());
     }
 
 
@@ -164,8 +181,7 @@ public class Task implements Serializable {
 
     public void setPriority(int priority) {
         this.priority = priority;
-        this.syncState = new StateEdited();
-        last_updated = new GregorianCalendar();
+        syncState.changeToState(new StateEdited());
     }
 
 
@@ -176,8 +192,7 @@ public class Task implements Serializable {
 
     public void setId(String id) {
         this.id = id;
-        this.syncState = new StateEdited();
-        last_updated = new GregorianCalendar();
+        syncState.changeToState(new StateEdited());
     }
 
 
@@ -187,7 +202,6 @@ public class Task implements Serializable {
 
     public void setHasEndDate(boolean hasEndDate) {
         this.hasEndDate = hasEndDate;
-        this.syncState = new StateEdited();
-        last_updated = new GregorianCalendar();
+        syncState.changeToState(new StateEdited());
     }
 }

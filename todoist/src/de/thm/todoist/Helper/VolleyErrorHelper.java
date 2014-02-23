@@ -80,6 +80,9 @@ public class VolleyErrorHelper {
                             if (resultError != null && resultError.has("error")) return resultError.getString("error");
                             return result.getString("info");
                         }
+                        if (result.has("error")) {
+                            return result.getString("error");
+                        }
                         return result.toString();
 
                     } catch (Exception e) {

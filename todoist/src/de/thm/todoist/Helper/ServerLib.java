@@ -66,8 +66,7 @@ public class ServerLib implements Constants {
             @Override
             public void onErrorResponse(VolleyError error) {
                 VolleyLog.e("Error: ", error.getMessage());
-                if (!silently)
-                    AppMsg.makeText(callingAct, VolleyErrorHelper.getMessage(error, callingAct.getBaseContext()), AppMsg.STYLE_ALERT).show();
+                AppMsg.makeText(callingAct, VolleyErrorHelper.getMessage(error, callingAct.getBaseContext()), AppMsg.STYLE_ALERT).show();
             }
         }
         ) {
@@ -126,8 +125,7 @@ public class ServerLib implements Constants {
             @Override
             public void onErrorResponse(VolleyError error) {
                 VolleyLog.e("Error: ", error.getMessage());
-                if (!silently)
-                    AppMsg.makeText(callingAct, VolleyErrorHelper.getMessage(error, callingAct.getBaseContext()), AppMsg.STYLE_ALERT).show();
+                AppMsg.makeText(callingAct, VolleyErrorHelper.getMessage(error, callingAct.getBaseContext()), AppMsg.STYLE_ALERT).show();
             }
         }
         ) {
@@ -262,8 +260,7 @@ public class ServerLib implements Constants {
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        if (!silently)
-                            AppMsg.makeText(callingAct, VolleyErrorHelper.getMessage(error, callingAct.getBaseContext()), AppMsg.STYLE_ALERT).show();
+                        AppMsg.makeText(callingAct, VolleyErrorHelper.getMessage(error, callingAct.getBaseContext()), AppMsg.STYLE_ALERT).show();
                         Log.d("ERROR", "error => " + error.toString());
                     }
                 }

@@ -31,4 +31,8 @@
         benedikt.kusemann@freenet.de
     </string>
     <string name="no_server_connection">Es besteht keine Verbindung zum Server!</string>
+    <string name="register">Register new Account</string>
+    <string name="email_label">E-Mail:</string>
+    <string name="login">Login</string>
+    <string name="password_label">Password:</string>
 </resources>

@@ -35,6 +35,7 @@ public class TaskListAdapter extends ArrayAdapter<Task> {
     public void refreshArrayLists() {
         filteredtaskList = new ArrayList<Task>();
         for (Task task : taskList) {
+            if (task.isDeleted() && task.isSynced()) taskList.remove(task);
             if (!task.isDeleted()) filteredtaskList.add(task);
         }
     }
