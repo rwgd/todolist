@@ -155,7 +155,7 @@ public class ServerLib implements Constants {
             public void onResponse(String response) {
                 // response
                 Log.d("Response", response);
-                callingAct.deleteAllTasks();
+//                callingAct.deleteAllTasks();
                 JsonArray jArray = new JsonParser().parse(response).getAsJsonArray();
                 for (int i = 0; i < jArray.size(); i++) {
                     JsonObject jsonObject = jArray.get(i).getAsJsonObject();

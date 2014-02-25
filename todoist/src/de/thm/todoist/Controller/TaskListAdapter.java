@@ -1,6 +1,7 @@
 package de.thm.todoist.Controller;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +13,7 @@ import de.thm.todoist.Model.Task;
 import de.thm.todoist.R;
 
 import java.util.ArrayList;
+import java.util.GregorianCalendar;
 
 /**
  * Created by Benedikt on 21.01.14.
@@ -105,13 +107,29 @@ public class TaskListAdapter extends ArrayAdapter<Task> {
         holder.taskNameView.setText(t.getTitle());
         if (t.hasEndDate()) {
             holder.enddateView.setVisibility(View.VISIBLE);
+            GregorianCalendar tommorow = new GregorianCalendar();
+            GregorianCalendar today = tommorow;
+            tommorow.add(GregorianCalendar.DAY_OF_MONTH, 1);
+            if (t.getEnddate().before(today)) {
+                holder.enddateView.setTextColor(Color.RED);
+                holder.taskNameView.setTextColor(Color.RED);
+            } else if (t.getEnddate().before(tommorow)) {
+                holder.enddateView.setTextColor(Color.RED);
+                holder.taskNameView.setTextColor(Color.BLACK);
+            }
             holder.enddateView.setText("Enddatum: " + t.getViewDateString());
         } else {
+            holder.enddateView.setTextColor(Color.BLACK);
+            holder.taskNameView.setTextColor(Color.BLACK);
             holder.enddateView.setVisibility(View.INVISIBLE);
         }
         holder.doneView.setOnCheckedChangeListener(null);
         holder.doneView.setChecked(t.isDone());
         holder.doneView.setOnCheckedChangeListener(checkedChangeListener);
+        if (t.isDone()) {
+            holder.taskNameView.setTextColor(Color.GRAY);
+            holder.enddateView.setTextColor(Color.GRAY);
+        }
         return v;
     }
 

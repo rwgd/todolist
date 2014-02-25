@@ -36,4 +36,8 @@
     <string name="login">Login</string>
     <string name="password_label">Password:</string>
     <string name="import_fail">Fehler beim Import der Daten - Alle nicht synchronisierten Daten sind verloren.</string>
+    <string name="external_import_fail">Fehler beim Importieren der externen Daten</string>
+    <string name="wunderlist_import_fail">Sie importieren Daten von Wunderlist. Leider können Enddaten nicht
+        mitimportiert werden. Tragen Sie diese bitte nachträglich ein.
+    </string>
 </resources>

@@ -21,7 +21,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
@@ -98,13 +97,13 @@ public class XMLReader implements Constants {
                                         done = Boolean.parseBoolean(childElement.getTextContent());
                                     }
                                     if (childTag.equals("enddate")) {
-                                        enddate.setTime(df.parse(childElement.getTextContent()));
+                                        enddate = readDate(childElement);
                                         if (childElement.hasAttribute("endEnabled")) {
                                             hasEndDate = Boolean.parseBoolean(childElement.getAttribute("endEnabled"));
                                         }
                                     }
                                     if (childTag.equals("last_updated")) {
-                                        last_updated.setTime(df.parse(childElement.getTextContent()));
+                                        last_updated = readDate(childElement);
                                     }
                                     if (childTag.equals("state")) {
                                         syncMode = Integer.parseInt(childElement.getTextContent());
@@ -117,21 +116,57 @@ public class XMLReader implements Constants {
                     }
                 }
             }
-            if (!silently) AppMsg.makeText(ctxt, "File saved to: " + filePath, AppMsg.STYLE_INFO).show();
+            if (!silently) AppMsg.makeText(ctxt, "File loaded from: " + filePath, AppMsg.STYLE_INFO).show();
         } catch (ParserConfigurationException e) {
             Log.e("Fehler beim importieren", "Error:", e);
-            AppMsg.makeText(ctxt, R.string.import_fail, AppMsg.STYLE_ALERT).show();
+            if (!silently) AppMsg.makeText(ctxt, R.string.import_fail, AppMsg.STYLE_ALERT).show();
         } catch (SAXException e) {
             Log.e("Fehler beim importieren", "Error:", e);
-            AppMsg.makeText(ctxt, R.string.import_fail, AppMsg.STYLE_ALERT).show();
+            if (!silently) AppMsg.makeText(ctxt, R.string.import_fail, AppMsg.STYLE_ALERT).show();
         } catch (IOException e) {
             Log.e("Fehler beim importieren", "Error:", e);
-            AppMsg.makeText(ctxt, R.string.import_fail, AppMsg.STYLE_ALERT).show();
-        } catch (ParseException e) {
-            Log.e("Fehler beim importieren", "Error:", e);
-            AppMsg.makeText(ctxt, R.string.import_fail, AppMsg.STYLE_ALERT).show();
+            if (!silently) AppMsg.makeText(ctxt, R.string.import_fail, AppMsg.STYLE_ALERT).show();
         }
         return result;
+    }
+
+    private GregorianCalendar readDate(Element dateElement) {
+        GregorianCalendar date = new GregorianCalendar();
+        String timezone = "UTC";
+        int month = 0;
+        int year = 0;
+        int day = 0;
+        int hour = 0;
+        int minute = 0;
+        if (dateElement.hasAttribute("Timezone")) timezone = dateElement.getAttribute("Timezone");
+        NodeList childNodes = dateElement.getChildNodes();
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node child = childNodes.item(i);
+            if (child.getNodeType() == Node.ELEMENT_NODE) {
+
+
+                Element childElement = (Element) child;
+                String childTag = childElement.getTagName();
+                if (childTag.equals("month")) {
+                    month = Integer.valueOf(childElement.getTextContent());
+                }
+                if (childTag.equals("year")) {
+                    year = Integer.valueOf(childElement.getTextContent());
+                }
+                if (childTag.equals("day")) {
+                    day = Integer.valueOf(childElement.getTextContent());
+                }
+                if (childTag.equals("hour")) {
+                    hour = Integer.valueOf(childElement.getTextContent());
+                }
+                if (childTag.equals("minutes")) {
+                    minute = Integer.valueOf(childElement.getTextContent());
+                }
+            }
+            date.set(year, month, day, hour, minute);
+            date.setTimeZone(TimeZone.getTimeZone(timezone));
+        }
+        return date;
     }
 }
 

@@ -19,8 +19,6 @@ import de.thm.todoist.Dialoge.TaskDialog;
 import de.thm.todoist.Helper.*;
 import de.thm.todoist.Model.Task;
 import de.thm.todoist.R;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -105,6 +103,7 @@ public class TaskActivity extends FragmentActivity
                 // Only make .json files visible
                 ArrayList<String> extensions = new ArrayList<String>();
                 extensions.add(".json");
+                extensions.add(".abk");
                 intent.putExtra(FilePickerActivity.EXTRA_ACCEPTED_FILE_EXTENSIONS,
                         extensions);
 
@@ -134,35 +133,12 @@ public class TaskActivity extends FragmentActivity
                 case REQUEST_PICK_FILE: //Wunderlist Import
                     if (data.hasExtra(FilePickerActivity.EXTRA_FILE_PATH)) {
                         // Get the file path
-                        File f = new File(
-                                data.getStringExtra(FilePickerActivity.EXTRA_FILE_PATH));
-                        if (f.getPath().contains(".json")) {
-                            try {
-                                String jsonString = FktLib.readFile(f);
-                                JSONObject jsnobject = new JSONObject(jsonString);
-                                JSONArray jsonArray = jsnobject.getJSONArray("tasks");
-
-                                for (int i = 0; i < jsonArray.length(); i++) {
-                                    JSONObject explrObject = jsonArray.getJSONObject(i);
-
-                                    String date = explrObject.getString("created_at");
-                                    String title = explrObject.getString("title");
-
-                                    String id = explrObject.getString("id");
-                                    Boolean done = !explrObject
-                                            .isNull("completed_at");
-                                    //TODO: String to GregorianCalender
-                                    if (!date.equals("")) {
-//                                        addTaskToTasksArray(new Task(id, title, "", new GregorianCalendar(date), done, 0, false), true);
-                                    } else {
-//                                         addTaskToTasksArray(new Task(id, title, "", null, done, 0, false), true);
-                                    }
-                                }
-                                refreshList();
-                            } catch (Exception e) {
-                                // Fehler beim Auslesen der JSON-Datei
-                            }
+                        File f = new File(data.getStringExtra(FilePickerActivity.EXTRA_FILE_PATH));
+                        ArrayList<Task> importedTasks = JSONImporter.parseFile(f, this);
+                        for (Task task : importedTasks) {
+                            addTaskToTasksArray(task);
                         }
+//                        sendUpdates();
                     }
             }
         }
@@ -299,23 +275,23 @@ public class TaskActivity extends FragmentActivity
         CheckBox cb = (CheckBox) buttonView;
         Task task = (Task) cb.getTag();
         task.setDone(isChecked);
-        ServerLib.editTask(task, mPreferences, queue, this);
+        task.sync(mPreferences, queue, this);
         refreshList();
     }
 
     private class LoadTasksAsync extends AsyncTask<Void, Void, Boolean> {
         @Override
         protected Boolean doInBackground(Void... params) {
-            sendUpdates();
+
             boolean check;
             check = FktLib.ping(CHECK_URL);
+            if (check) sendUpdates();
             return check;
         }
 
         @Override
         protected void onPostExecute(Boolean result) {
             if (result) {
-
                 getTasks();
             } else {
                 AppMsg.makeText(TaskActivity.this, TaskActivity.this.getText(R.string.no_server_connection), AppMsg.STYLE_ALERT).show();

@@ -18,6 +18,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.GregorianCalendar;
 
 public class XMLBuilder implements Constants {
 
@@ -62,7 +63,7 @@ public class XMLBuilder implements Constants {
                     task.appendChild(description);
 
                     Element enddate = doc.createElement("enddate");
-                    enddate.appendChild(doc.createTextNode(aTaskList.getEndDateString()));
+                    addDateToElement(doc, enddate, aTaskList.getEnddate());
                     task.appendChild(enddate);
 
                     Attr hasEndDate = doc.createAttribute("endEnabled");
@@ -82,7 +83,7 @@ public class XMLBuilder implements Constants {
                     task.appendChild(state);
 
                     Element lastUpdate = doc.createElement("last_updated");
-                    lastUpdate.appendChild(doc.createTextNode(aTaskList.getLastUpdatedString()));
+                    addDateToElement(doc, lastUpdate, aTaskList.getLastUpdated());
                     task.appendChild(lastUpdate);
 
                     result = true;
@@ -106,6 +107,39 @@ public class XMLBuilder implements Constants {
         }
 
         return result;
+
+    }
+
+    private void addDateToElement(Document doc, Element addTo, GregorianCalendar calDate) {
+        int minutes = calDate.get(GregorianCalendar.MINUTE);
+        Element minutesEl = doc.createElement("minutes");
+        minutesEl.appendChild(doc.createTextNode(String.valueOf(minutes)));
+        addTo.appendChild(minutesEl);
+
+        int hour = calDate.get(GregorianCalendar.HOUR_OF_DAY);
+        Element hourEl = doc.createElement("hour");
+        hourEl.appendChild(doc.createTextNode(String.valueOf(hour)));
+        addTo.appendChild(hourEl);
+
+        int day = calDate.get(GregorianCalendar.DAY_OF_MONTH);
+        Element dayEl = doc.createElement("day");
+        dayEl.appendChild(doc.createTextNode(String.valueOf(day)));
+        addTo.appendChild(dayEl);
+
+        int month = calDate.get(GregorianCalendar.MONTH);
+        Element monthEl = doc.createElement("month");
+        monthEl.appendChild(doc.createTextNode(String.valueOf(month)));
+        addTo.appendChild(monthEl);
+
+        int year = calDate.get(GregorianCalendar.YEAR);
+        Element yearEl = doc.createElement("year");
+        yearEl.appendChild(doc.createTextNode(String.valueOf(year)));
+        addTo.appendChild(yearEl);
+
+        String timezone = calDate.getTimeZone().getID();
+        Attr timezoneAttr = doc.createAttribute("Timezone");
+        timezoneAttr.setValue(String.valueOf(timezone));
+        addTo.setAttributeNode(timezoneAttr);
 
     }
 
