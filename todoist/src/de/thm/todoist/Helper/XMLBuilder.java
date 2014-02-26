@@ -35,10 +35,16 @@ public class XMLBuilder implements Constants {
         if (taskList != null) {
 
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            // Specify our own schema - this overrides the schemaLocation in the xml file
+            //factory.setAttribute("http://java.sun.com/xml/jaxp/properties/schemaSource", "file:./test.xsd");
             try {
                 DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
                 Document doc = docBuilder.newDocument();
+
+                String NS_URL = "namespaceURL";
                 Element rootElement = doc.createElement("todoist");
+                rootElement.setAttributeNS("http://www.w3.org/2001/XMLSchema-instance",
+                        "xsi:noNamespaceSchemaLocation", "http://kadrei.caelum.uberspace.de/todoist.xsd");
                 doc.appendChild(rootElement);
 
                 for (Task aTaskList : taskList) {
