@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 import android.view.*;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -111,15 +112,15 @@ public class TaskActivity extends FragmentActivity
                 return true;
             case R.id.action_refresh:
                 xmlb.generateXML(tasksAdapter.getData(), true, Constants.SAVE_DIR);
-                sendUpdates();
-                getTasks();
+                LoadTasksAsync pc = new LoadTasksAsync();
+                pc.execute();
                 return true;
             case R.id.action_new:
                 TaskDialog dialog = new TaskDialog();
                 dialog.show(getFragmentManager(), "test");
                 return true;
             case R.id.action_exportxml:
-                xmlb.generateXML(tasksAdapter.getData(), false, Constants.SAVE_DIR_XML);
+                xmlb.generateXML(tasksAdapter.getData(), false, Constants.EXPORT_XML);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -138,7 +139,6 @@ public class TaskActivity extends FragmentActivity
                         for (Task task : importedTasks) {
                             addTaskToTasksArray(task);
                         }
-//                        sendUpdates();
                     }
             }
         }
@@ -181,7 +181,7 @@ public class TaskActivity extends FragmentActivity
 
     public void sendUpdates() {
         for (Task task : tasksAdapter.getData()) {
-            task.sync(mPreferences, queue, this);
+            task.sync(mPreferences, queue, this, true);
         }
     }
 
@@ -190,9 +190,11 @@ public class TaskActivity extends FragmentActivity
         ImageView iv = (ImageView) mInflater.inflate(R.layout.refresh, null);
         Animation rotation = AnimationUtils.loadAnimation(this, R.anim.rotate);
         if (rotation != null && iv != null && mRefresh != null) {
+            stopRefreshView();
             rotation.setRepeatCount(Animation.INFINITE);
             iv.startAnimation(rotation);
             mRefresh.setActionView(iv);
+
         }
         ServerLib.getAllTasks(mPreferences, queue, this);
     }
@@ -218,12 +220,12 @@ public class TaskActivity extends FragmentActivity
                     actualTask.setTitle(name);
                     actualTask.setHasEndDate(dateEnabled);
                     actualTask.setEnddate(enddate);
-                    actualTask.sync(mPreferences, queue, this);
+                    actualTask.sync(mPreferences, queue, this, false);
                     break;
                 }
             }
         } else {
-            Task newTask = new Task(UUID.randomUUID().toString(), name, description, enddate, false, 0, dateEnabled);
+            Task newTask = new Task(UUID.randomUUID().toString(), name, description, enddate, false, dateEnabled);
             ServerLib.sendTask(newTask, mPreferences, queue, this);
             addTaskToTasksArray(newTask);
         }
@@ -236,7 +238,7 @@ public class TaskActivity extends FragmentActivity
         for (Task actualTask : tasksAdapter.getData()) {
             if (actualTask.getId().equals(id)) {
                 actualTask.delete();
-                actualTask.sync(mPreferences, queue, this);
+                actualTask.sync(mPreferences, queue, this, false);
                 tasksAdapter.refreshArrayLists();
                 break;
             }
@@ -249,6 +251,7 @@ public class TaskActivity extends FragmentActivity
         for (Task actualTask : tasksAdapter.getData()) {
             if (actualTask.getId().equals(t.getId())) {
                 tasksAdapter.remove(actualTask);
+                actualTask.sync(mPreferences, queue, this, false);
                 break;
             }
         }
@@ -275,7 +278,7 @@ public class TaskActivity extends FragmentActivity
         CheckBox cb = (CheckBox) buttonView;
         Task task = (Task) cb.getTag();
         task.setDone(isChecked);
-        task.sync(mPreferences, queue, this);
+        task.sync(mPreferences, queue, this, true);
         refreshList();
     }
 
@@ -285,8 +288,35 @@ public class TaskActivity extends FragmentActivity
 
             boolean check;
             check = FktLib.ping(CHECK_URL);
-            if (check) sendUpdates();
-            return check;
+            if (check) {
+                sendUpdates();
+            } else {
+                return false;
+            }
+            boolean synced = true;
+            for (Task actualTask : tasksAdapter.getData()) {
+                if (!actualTask.isSynced()) {
+                    synced = false;
+                    break;
+                }
+            }
+            if (!synced) {
+
+                Log.e("Waiting for sync", "waiting");
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                synced = true;
+                for (Task actualTask : tasksAdapter.getData()) {
+                    if (!actualTask.isSynced()) {
+                        synced = false;
+                        break;
+                    }
+                }
+            }
+            return synced;
         }
 
         @Override

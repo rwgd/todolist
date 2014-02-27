@@ -44,7 +44,6 @@ public class ServerLib implements Constants {
             taskObj.put("duedate", task.getEndDateString());
             taskObj.put("enabledDueDate", task.hasEndDate());
             taskObj.put("done", task.isDone());
-            taskObj.put("priority", task.getPriority());
             taskObj.put("id", task.getId());
             holder.put("user_token", mPreferences.getString("AuthToken", ""));
             holder.put("task", taskObj);
@@ -97,7 +96,6 @@ public class ServerLib implements Constants {
             taskObj.put("duedate", task.getEndDateString());
             taskObj.put("enabledDueDate", task.hasEndDate());
             taskObj.put("done", task.isDone());
-            taskObj.put("priority", task.getPriority());
             holder.put("task", taskObj);
         } catch (JSONException e) {
             e.printStackTrace();
@@ -114,8 +112,9 @@ public class ServerLib implements Constants {
                             Log.d("id", response.getJSONObject("data").getJSONObject("task").getString("id"));
                             task.setId(generatedId);
                             task.setSynced();
-                            if (!silently)
+                            if (!silently) {
                                 AppMsg.makeText(callingAct, callingAct.getString(R.string.createTask_success), AppMsg.STYLE_INFO).show();
+                            }
                         } catch (JSONException e) {
                             // TODO Auto-generated catch block
                             e.printStackTrace();
@@ -200,17 +199,7 @@ public class ServerLib implements Constants {
                             done = true;
                         }
                     }
-                    if (jsonObject.get("priority").isJsonNull()) {
-                        try {
-                            priority = jsonObject.get("priority").getAsInt();
-                        } catch (NumberFormatException e) {
-                            Log.e("nfe", "false number");
-                            priority = 0;
-                        }
-
-                    }
-
-                    Task newTask = new Task(id, title, description, duedate, done, priority, hasDueDate);
+                    Task newTask = new Task(id, title, description, duedate, done, hasDueDate);
                     newTask.setSynced();
                     callingAct.addTaskToTasksArray(newTask);
                 }

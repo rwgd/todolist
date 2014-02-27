@@ -17,7 +17,6 @@ public class Task {
     private GregorianCalendar enddate;
     private boolean done;
     private boolean hasEndDate;
-    private int priority;
     private String id;
     private SyncState syncState = new StateCreated();
     private boolean isDeleted = false;
@@ -28,7 +27,7 @@ public class Task {
     }
 
     abstract class SyncState {
-        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
+        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct, boolean silently) {
         }
 
         public boolean isSynced() {
@@ -59,8 +58,8 @@ public class Task {
 
     class StateEdited extends SyncState {
         @Override
-        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
-            ServerLib.editTask(Task.this, mPreferences, queue, callingAct, true);
+        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct, boolean silently) {
+            ServerLib.editTask(Task.this, mPreferences, queue, callingAct, silently);
         }
 
         public int getMode() {
@@ -70,8 +69,8 @@ public class Task {
 
     class StateDeleted extends SyncState {
         @Override
-        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
-            ServerLib.deleteTask(Task.this, mPreferences, queue, callingAct, true);
+        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct, boolean silently) {
+            ServerLib.deleteTask(Task.this, mPreferences, queue, callingAct, silently);
         }
 
         public int getMode() {
@@ -81,8 +80,8 @@ public class Task {
 
     class StateCreated extends SyncState {
         @Override
-        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
-            ServerLib.sendTask(Task.this, mPreferences, queue, callingAct, true);
+        public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct, boolean silently) {
+            ServerLib.sendTask(Task.this, mPreferences, queue, callingAct, silently);
         }
 
         public void changeToState(SyncState newState) {
@@ -114,15 +113,15 @@ public class Task {
     }
 
 
-    public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct) {
-        syncState.sync(mPreferences, queue, callingAct);
+    public void sync(SharedPreferences mPreferences, RequestQueue queue, TaskActivity callingAct, boolean silently) {
+        syncState.sync(mPreferences, queue, callingAct, silently);
     }
 
-    public Task(String id, String title, String description, GregorianCalendar enddate, boolean done, int priority, boolean hasEndDate) {
-        this(id, title, description, enddate, done, priority, hasEndDate, new GregorianCalendar(), false, 1);
+    public Task(String id, String title, String description, GregorianCalendar enddate, boolean done, boolean hasEndDate) {
+        this(id, title, description, enddate, done, hasEndDate, new GregorianCalendar(), false, 1);
     }
 
-    public Task(String id, String title, String description, GregorianCalendar enddate, boolean done, int priority, boolean hasEndDate, GregorianCalendar last_updated, boolean isDeleted, int state) {
+    public Task(String id, String title, String description, GregorianCalendar enddate, boolean done, boolean hasEndDate, GregorianCalendar last_updated, boolean isDeleted, int state) {
         super();
         this.id = id;
         this.title = title;
@@ -130,7 +129,6 @@ public class Task {
         this.enddate = enddate;
         this.hasEndDate = hasEndDate;
         this.done = done;
-        this.priority = priority;
         this.isDeleted = isDeleted;
         this.last_updated = last_updated;
         switch (state) {
@@ -218,18 +216,6 @@ public class Task {
         this.done = done;
         syncState.changeToState(new StateEdited());
     }
-
-
-    public int getPriority() {
-        return priority;
-    }
-
-
-    public void setPriority(int priority) {
-        this.priority = priority;
-        syncState.changeToState(new StateEdited());
-    }
-
 
     public String getId() {
         return id;

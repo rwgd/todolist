@@ -89,10 +89,6 @@ public class XMLReader implements Constants {
                                     if (childTag.equals("description")) {
                                         description = childElement.getTextContent();
                                     }
-                                    if (childTag.equals("priority")) {
-                                        priority = Integer.parseInt(childElement.getTextContent());
-                                    }
-
                                     if (childTag.equals("done")) {
                                         done = Boolean.parseBoolean(childElement.getTextContent());
                                     }
@@ -111,7 +107,7 @@ public class XMLReader implements Constants {
                                 }
                             }
                         }
-                        Task curTask = new Task(id, title, description, enddate, done, priority, hasEndDate, last_updated, isDeleted, syncMode);
+                        Task curTask = new Task(id, title, description, enddate, done, hasEndDate, last_updated, isDeleted, syncMode);
                         result.add(curTask);
                     }
                 }

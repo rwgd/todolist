@@ -17,6 +17,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.devspark.appmsg.AppMsg;
 import de.thm.todoist.Helper.Constants;
 import de.thm.todoist.R;
 import org.json.JSONException;
@@ -71,18 +72,18 @@ public class RegisterActivity extends Activity implements OnClickListener, Const
             String password2 = etPassword2.getText().toString();
 
             if (name.equals("") || email.equals("") || password1.equals("") || password2.equals("")) {
-                Toast.makeText(this, "Please complete all the fields", Toast.LENGTH_LONG).show();
+                AppMsg.makeText(this, R.string.register_fields_missing, AppMsg.STYLE_ALERT).show();
             } else {
                 if (password1.equals(password2)) {
 
                     if (password1.length() < 8) {
-                        Toast.makeText(this, "Password must be min. 8 Characters long", Toast.LENGTH_LONG).show();
+                        AppMsg.makeText(this, R.string.register_password_short, AppMsg.STYLE_ALERT).show();
                     } else {
                         register(name, email, password1, password2);
                     }
 
                 } else {
-                    Toast.makeText(this, "Your password doesn't match confirmation, check again", Toast.LENGTH_LONG).show();
+                    AppMsg.makeText(this, R.string.register_password_match_fail, AppMsg.STYLE_ALERT).show();
                 }
             }
 

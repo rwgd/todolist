@@ -29,18 +29,17 @@ public class JSONImporter {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject explrObject = jsonArray.getJSONObject(i);
 
-                    String date = explrObject.getString("created_at");
                     String title = explrObject.getString("title");
 
                     String id = explrObject.getString("id");
                     Boolean done = !explrObject
                             .isNull("completed_at");
-                    tasks.add(new Task(id, title, "", new GregorianCalendar(), done, 0, false));
+                    tasks.add(new Task(id, title, "", new GregorianCalendar(), done, false));
                 }
                 AppMsg.makeText(act, R.string.wunderlist_import_fail, AppMsg.STYLE_ALERT);
             } else if (f.getPath().contains(".abk")) {
                 JSONArray taskArray = jsnobject.getJSONArray("tasks");
-                for (int i = 0; i <= taskArray.length(); i++) {
+                for (int i = 0; i < taskArray.length(); i++) {
                     JSONObject curTask = taskArray.getJSONObject(i);
                     String title = curTask.getString("title");
                     String id = curTask.getString("globalTaskId");
@@ -53,7 +52,7 @@ public class JSONImporter {
                     }
                     boolean done = false;
                     if (curTask.getString("status").equals("CHECKED")) done = true;
-                    tasks.add(new Task(id, title, "", calDueDate, done, 0, hasEndDate));
+                    tasks.add(new Task(id, title, "", calDueDate, done, hasEndDate));
                 }
             }
 

@@ -80,10 +80,6 @@ public class XMLBuilder implements Constants {
                     done.appendChild(doc.createTextNode(String.valueOf(aTaskList.isDone())));
                     task.appendChild(done);
 
-                    Element priority = doc.createElement("priority");
-                    priority.appendChild(doc.createTextNode(String.valueOf(aTaskList.getPriority())));
-                    task.appendChild(priority);
-
                     Element state = doc.createElement("state");
                     state.appendChild(doc.createTextNode(String.valueOf(aTaskList.getMode())));
                     task.appendChild(state);
